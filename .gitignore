@@ -1,0 +1,37 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# Arquivos de banco de dados
+*.db
+*.sqlite3
+
+# Arquivos de mídia
+media/
+
+# Arquivos de configuração
+.env
+
+# Arquivos de logs
+*.log
+
+# Arquivos de desenvolvimento
+.DS_Store
+Thumbs.db
+
+# Arquivos de teste
+*.test
+*.test.*
+
+# Cache
+.cache/
+__pycache__
+.pytest_cache/
+.mypy_cache/

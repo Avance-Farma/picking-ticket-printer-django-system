@@ -1,0 +1,392 @@
+<!doctype html>
+<html lang="pt-br">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Expedição e Impressão ZPL</title>
+    <!-- QZ Tray API -->
+    <script src="https://cdn.jsdelivr.net/npm/qz-tray@2.2.4/qz-tray.min.js"></script>
+    <style>
+      :root {
+        --primary: #2563eb;
+        --primary-hover: #1d4ed8;
+        --bg-color: #f8fafc;
+        --card-bg: #ffffff;
+        --text-main: #1e293b;
+        --text-muted: #64748b;
+        --border-color: #e2e8f0;
+      }
+
+      body {
+        font-family:
+          "Inter",
+          system-ui,
+          -apple-system,
+          sans-serif;
+        background-color: var(--bg-color);
+        color: var(--text-main);
+        margin: 0;
+        padding: 2rem;
+        display: flex;
+        justify-content: center;
+      }
+
+      .container {
+        max-width: 800px;
+        width: 100%;
+      }
+
+      .header {
+        text-align: center;
+        margin-bottom: 2rem;
+      }
+
+      .header h1 {
+        margin: 0;
+        font-size: 2rem;
+        color: var(--text-main);
+      }
+
+      .card {
+        background-color: var(--card-bg);
+        border-radius: 12px;
+        box-shadow:
+          0 4px 6px -1px rgb(0 0 0 / 0.1),
+          0 2px 4px -2px rgb(0 0 0 / 0.1);
+        padding: 2rem;
+        margin-bottom: 2rem;
+      }
+
+      .form-group {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 1rem;
+      }
+
+      input[type="text"],
+      input[type="number"] {
+        flex: 1;
+        padding: 0.75rem 1rem;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        font-size: 1rem;
+        outline: none;
+        transition: border-color 0.2s;
+      }
+
+      input:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+      }
+
+      button {
+        background-color: var(--primary);
+        color: white;
+        border: none;
+        padding: 0.75rem 1.5rem;
+        border-radius: 8px;
+        font-size: 1rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background-color 0.2s;
+      }
+
+      button:hover {
+        background-color: var(--primary-hover);
+      }
+
+      button:disabled {
+        background-color: var(--text-muted);
+        cursor: not-allowed;
+      }
+
+      .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+      }
+
+      .info-item {
+        background: var(--bg-color);
+        padding: 1rem;
+        border-radius: 8px;
+      }
+
+      .info-label {
+        font-size: 0.875rem;
+        color: var(--text-muted);
+        margin-bottom: 0.25rem;
+      }
+
+      .info-value {
+        font-weight: 600;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 2rem;
+      }
+
+      th,
+      td {
+        text-align: left;
+        padding: 1rem;
+        border-bottom: 1px solid var(--border-color);
+      }
+
+      th {
+        background-color: var(--bg-color);
+        font-weight: 500;
+        color: var(--text-muted);
+      }
+
+      .process-section {
+        background-color: #f0fdf4;
+        border: 1px solid #bbf7d0;
+        padding: 1.5rem;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+      }
+
+      .process-section input {
+        max-width: 150px;
+      }
+
+      #status-message {
+        margin-top: 1rem;
+        padding: 1rem;
+        border-radius: 8px;
+        display: none;
+      }
+
+      .success {
+        background-color: #dcfce7;
+        color: #166534;
+      }
+      .error {
+        background-color: #fee2e2;
+        color: #991b1b;
+      }
+      .info {
+        background-color: #dbeafe;
+        color: #1e40af;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>Expedição e Impressão ZPL</h1>
+        <p style="color: var(--text-muted)">
+          Consulte pedidos e emita etiquetas térmicas
+        </p>
+      </div>
+
+      <!-- Busca de Pedido -->
+      <div class="card">
+        <form method="GET" action="/">
+          <div class="form-group">
+            <input
+              type="text"
+              name="numero_pedido"
+              placeholder="Digite o Número do Pedido"
+              value="{{ search_query|default:'' }}"
+              required
+            />
+            <button type="submit">Buscar Pedido</button>
+          </div>
+        </form>
+        {% if search_query and not pedido %}
+        <p class="error" style="padding: 1rem; border-radius: 8px">
+          Pedido não encontrado.
+        </p>
+        {% endif %}
+      </div>
+
+      {% if pedido %}
+      <!-- Dados do Pedido -->
+      <div class="card">
+        <h3>Detalhes do Pedido #{{ pedido.numero_pedido }}</h3>
+
+        <div class="info-grid">
+          <div class="info-item">
+            <div class="info-label">Cliente</div>
+            <div class="info-value">{{ pedido.cliente_nome }}</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">Rota</div>
+            <div class="info-value">{{ pedido.rota }}</div>
+          </div>
+          <div class="info-item" style="grid-column: 1 / -1">
+            <div class="info-label">Endereço de Entrega</div>
+            <div class="info-value">
+              {{ pedido.endereco_logradouro }}, {{ pedido.endereco_numero }} -
+              {{ pedido.endereco_bairro }}, {{ pedido.endereco_cidade }}/
+              {{ pedido.endereco_uf }} - CEP: {{ pedido.endereco_cep }}
+            </div>
+          </div>
+        </div>
+
+        <h3>Itens do Pedido</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>CódigoProduto</th>
+              <th>Descrição</th>
+              <th>Qtd</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in pedido.itens.all %}
+            <tr>
+              <td>{{ item.codigo_produto }}</td>
+              <td>{{ item.descricao }}</td>
+              <td>{{ item.quantidade }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="3" style="text-align: center">
+                Nenhum item encontrado.
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+
+        <div class="process-section">
+          <div>
+            <label for="total_volumes" class="info-label"
+              >Total de Volumes</label
+            >
+            <input
+              type="number"
+              id="total_volumes"
+              min="1"
+              value="1"
+              required
+            />
+          </div>
+          <button
+            id="btn-processar"
+            onclick="processAndPrint('{{ pedido.numero_pedido }}')"
+          >
+            Processar e Imprimir
+          </button>
+        </div>
+
+        <div id="status-message"></div>
+      </div>
+      {% endif %}
+    </div>
+
+    {% csrf_token %}
+
+    <script>
+      // Configuração de impressão QZ Tray
+      const PRINTER_NAME = "TSC TPP-244CE";
+
+      function showMessage(msg, type) {
+        const statusDiv = document.getElementById("status-message");
+        statusDiv.textContent = msg;
+        statusDiv.className = type;
+        statusDiv.style.display = "block";
+      }
+
+      async function initQZ() {
+        if (!qz.websocket.isActive()) {
+          showMessage(
+            "Conectando ao serviço de impressão (QZ Tray)...",
+            "info",
+          );
+          try {
+            await qz.websocket.connect();
+            return true;
+          } catch (err) {
+            showMessage(
+              "Erro ao conectar ao QZ Tray. Certifique-se de que ele está rodando.",
+              "error",
+            );
+            console.error(err);
+            return false;
+          }
+        }
+        return true;
+      }
+
+      async function printZPL(zplCommands) {
+        try {
+          const config = qz.configs.create(PRINTER_NAME);
+
+          // Preparando array de dados brutos
+          let printData = [];
+          zplCommands.forEach((zpl) => {
+            printData.push(zpl);
+          });
+
+          showMessage("Enviando para a impressora...", "info");
+          await qz.print(config, printData);
+          showMessage("Etiquetas impressas com sucesso!", "success");
+        } catch (err) {
+          showMessage("Erro ao imprimir: " + err, "error");
+          console.error(err);
+        }
+      }
+
+      async function processAndPrint(numeroPedido) {
+        const btn = document.getElementById("btn-processar");
+        const totalVolumes = document.getElementById("total_volumes").value;
+        const csrfToken = document.querySelector(
+          "[name=csrfmiddlewaretoken]",
+        ).value;
+
+        if (totalVolumes < 1) {
+          alert("O total de volumes deve ser pelo menos 1.");
+          return;
+        }
+
+        btn.disabled = true;
+        btn.textContent = "Processando...";
+        showMessage("Processando volumes no servidor...", "info");
+
+        try {
+          const response = await fetch("/process/", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "X-CSRFToken": csrfToken,
+            },
+            body: JSON.stringify({
+              numero_pedido: numeroPedido,
+              total_volumes: parseInt(totalVolumes),
+            }),
+          });
+
+          const data = await response.json();
+
+          if (response.ok && data.success) {
+            // Inicializar QZ Tray e Imprimir
+            const connected = await initQZ();
+            if (connected) {
+              await printZPL(data.zpl_commands);
+            }
+          } else {
+            showMessage(
+              "Erro no servidor: " + (data.error || "Desconhecido"),
+              "error",
+            );
+          }
+        } catch (error) {
+          showMessage("Erro de rede ao processar.", "error");
+          console.error(error);
+        } finally {
+          btn.disabled = false;
+          btn.textContent = "Processar e Imprimir";
+        }
+      }
+    </script>
+  </body>
+</html>
