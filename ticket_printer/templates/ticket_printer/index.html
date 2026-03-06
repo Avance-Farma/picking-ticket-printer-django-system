@@ -4,422 +4,876 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Expedição e Impressão ZPL</title>
-  <!-- QZ Tray API -->
+  <title>Expedição de Pickings</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/qz-tray@2.2.4/qz-tray.min.js"></script>
   <style>
     :root {
       --primary: #2563eb;
       --primary-hover: #1d4ed8;
-      --bg-color: #f8fafc;
-      --card-bg: #ffffff;
-      --text-main: #1e293b;
-      --text-muted: #64748b;
-      --border-color: #e2e8f0;
+      --primary-light: #dbeafe;
+      --success: #16a34a;
+      --success-light: #dcfce7;
+      --success-border: #bbf7d0;
+      --warning: #d97706;
+      --warning-light: #fef3c7;
+      --warning-border: #fde68a;
+      --danger: #dc2626;
+      --danger-light: #fee2e2;
+      --bg: #f1f5f9;
+      --card: #ffffff;
+      --text: #0f172a;
+      --muted: #64748b;
+      --border: #e2e8f0;
+    }
+
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
     }
 
     body {
-      font-family:
-        "Inter",
-        system-ui,
-        -apple-system,
-        sans-serif;
-      background-color: var(--bg-color);
-      color: var(--text-main);
-      margin: 0;
-      padding: 2rem;
+      font-family: "Inter", system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    .topbar {
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+      padding: 0 2rem;
+      height: 60px;
       display: flex;
-      justify-content: center;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, .06);
     }
 
-    .container {
-      max-width: 800px;
-      width: 100%;
+    .topbar-brand {
+      display: flex;
+      align-items: center;
+      gap: .6rem;
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--primary);
     }
 
-    .header {
-      text-align: center;
-      margin-bottom: 2rem;
+    .topbar-brand svg {
+      width: 22px;
+      height: 22px;
     }
 
-    .header h1 {
-      margin: 0;
-      font-size: 2rem;
-      color: var(--text-main);
+    .topbar-actions {
+      display: flex;
+      align-items: center;
+      gap: .75rem;
+    }
+
+    .page {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem 4rem;
     }
 
     .card {
-      background-color: var(--card-bg);
-      border-radius: 12px;
-      box-shadow:
-        0 4px 6px -1px rgb(0 0 0 / 0.1),
-        0 2px 4px -2px rgb(0 0 0 / 0.1);
-      padding: 2rem;
-      margin-bottom: 2rem;
+      background: var(--card);
+      border-radius: 10px;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, .07), 0 4px 16px rgba(0, 0, 0, .04);
+      overflow: hidden;
     }
 
-    .form-group {
+    .card-header {
+      padding: 1.25rem 1.5rem;
+      border-bottom: 1px solid var(--border);
       display: flex;
+      align-items: center;
+      justify-content: space-between;
       gap: 1rem;
-      margin-bottom: 1rem;
+      flex-wrap: wrap;
     }
 
-    input[type="text"],
-    input[type="number"] {
-      flex: 1;
-      padding: 0.75rem 1rem;
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
+    .card-title {
       font-size: 1rem;
-      outline: none;
-      transition: border-color 0.2s;
+      font-weight: 600;
     }
 
-    input:focus {
-      border-color: var(--primary);
-      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-    }
-
-    button {
-      background-color: var(--primary);
-      color: white;
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: .4rem;
+      padding: .55rem 1.1rem;
       border: none;
-      padding: 0.75rem 1.5rem;
-      border-radius: 8px;
-      font-size: 1rem;
+      border-radius: 7px;
+      font-size: .875rem;
       font-weight: 500;
       cursor: pointer;
-      transition: background-color 0.2s;
+      transition: background .18s, transform .1s;
+      text-decoration: none;
+      white-space: nowrap;
     }
 
-    button:hover {
-      background-color: var(--primary-hover);
+    .btn:active {
+      transform: scale(.97);
     }
 
-    button:disabled {
-      background-color: var(--text-muted);
+    .btn-primary {
+      background: var(--primary);
+      color: #fff;
+    }
+
+    .btn-primary:hover {
+      background: var(--primary-hover);
+    }
+
+    .btn-success {
+      background: var(--success);
+      color: #fff;
+    }
+
+    .btn-success:hover {
+      background: #15803d;
+    }
+
+    .btn-outline {
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid var(--border);
+    }
+
+    .btn-outline:hover {
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    .btn:disabled {
+      opacity: .45;
       cursor: not-allowed;
+      transform: none;
     }
 
-    .info-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 1.5rem;
-      margin-bottom: 2rem;
+    .search-bar {
+      display: flex;
+      gap: .5rem;
+      flex: 1;
+      max-width: 550px;
     }
 
-    .info-item {
-      background: var(--bg-color);
-      padding: 1rem;
-      border-radius: 8px;
+    .search-bar select.status-filter {
+      padding: .55rem 2rem .55rem .9rem;
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      font-size: .875rem;
+      font-weight: 500;
+      outline: none;
+      background-color: var(--bg);
+      appearance: none;
+      background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+      background-repeat: no-repeat;
+      background-position: right .7rem center;
+      background-size: 1em;
+      cursor: pointer;
     }
 
-    .info-label {
-      font-size: 0.875rem;
-      color: var(--text-muted);
-      margin-bottom: 0.25rem;
+    .search-bar select.status-filter:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, .12);
     }
 
-    .info-value {
-      font-weight: 600;
+    .search-bar input {
+      flex: 1;
+      padding: .55rem .9rem;
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      font-size: .875rem;
+      outline: none;
+    }
+
+    .search-bar input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, .12);
+    }
+
+    .table-wrap {
+      overflow-x: auto;
     }
 
     table {
       width: 100%;
       border-collapse: collapse;
-      margin-bottom: 2rem;
     }
 
-    th,
-    td {
-      text-align: left;
-      padding: 1rem;
-      border-bottom: 1px solid var(--border-color);
+    thead th {
+      background: var(--bg);
+      padding: .8rem 1rem;
+      font-size: .78rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      color: var(--muted);
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
     }
 
-    th {
-      background-color: var(--bg-color);
-      font-weight: 500;
-      color: var(--text-muted);
+    tbody tr {
+      border-bottom: 1px solid var(--border);
+      transition: background .14s;
     }
 
-    .process-section {
-      background-color: #f0fdf4;
-      border: 1px solid #bbf7d0;
-      padding: 1.5rem;
-      border-radius: 8px;
+    tbody tr:last-child {
+      border-bottom: none;
+    }
+
+    tbody tr:hover {
+      background: #f8fafc;
+    }
+
+    tbody td {
+      padding: .85rem 1rem;
+      font-size: .875rem;
+      vertical-align: middle;
+    }
+
+    .vol-wrapper {
       display: flex;
       align-items: center;
+      gap: .5rem;
+    }
+
+    .vol-input {
+      width: 80px;
+      padding: .48rem .6rem;
+      border: 2px solid var(--warning-border);
+      border-radius: 7px;
+      font-size: .9rem;
+      font-weight: 600;
+      text-align: center;
+      outline: none;
+      background: var(--warning-light);
+      color: var(--warning);
+      -moz-appearance: textfield;
+      transition: border-color .18s, background .18s, color .18s;
+    }
+
+    .vol-input::-webkit-outer-spin-button,
+    .vol-input::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+    }
+
+    .vol-input:focus {
+      border-color: var(--warning);
+      box-shadow: 0 0 0 3px rgba(217, 119, 6, .15);
+    }
+
+    .vol-input.confirmed {
+      border-color: var(--success-border);
+      background: var(--success-light);
+      color: var(--success);
+    }
+
+    .vol-btn {
+      padding: .4rem .75rem;
+      border-radius: 6px;
+      font-size: .78rem;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      background: var(--warning);
+      color: #fff;
+      transition: background .15s;
+    }
+
+    .vol-btn:hover {
+      background: #b45309;
+    }
+
+    .vol-btn.confirmed-btn {
+      background: var(--success);
+    }
+
+    .vol-btn.confirmed-btn:hover {
+      background: #15803d;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: .3rem;
+      font-size: .75rem;
+      font-weight: 600;
+      padding: .25rem .6rem;
+      border-radius: 99px;
+      white-space: nowrap;
+    }
+
+    .badge-pending {
+      background: var(--warning-light);
+      color: var(--warning);
+      border: 1px solid var(--warning-border);
+    }
+
+    .badge-confirmed {
+      background: var(--success-light);
+      color: var(--success);
+      border: 1px solid var(--success-border);
+    }
+
+    input[type="checkbox"] {
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      appearance: none;
+      width: 20px;
+      height: 20px;
+      border: 2px solid var(--border);
+      border-radius: 5px;
+      background: #fff;
+      cursor: pointer;
+      position: relative;
+      transition: all .2s ease;
+      flex-shrink: 0;
+    }
+
+    input[type="checkbox"]:checked {
+      background: var(--primary);
+      border-color: var(--primary);
+    }
+
+    input[type="checkbox"]:checked::after {
+      content: "";
+      position: absolute;
+      left: 6px;
+      top: 2px;
+      width: 5px;
+      height: 10px;
+      border: solid white;
+      border-width: 0 2px 2px 0;
+      transform: rotate(45deg);
+    }
+
+    input[type="checkbox"]:hover:not(:disabled) {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, .1);
+    }
+
+    input[type="checkbox"]:disabled {
+      background: #f1f5f9;
+      border-color: #e2e8f0;
+      cursor: not-allowed;
+      opacity: .6;
+    }
+
+    .pager {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1rem 1.5rem;
+      border-top: 1px solid var(--border);
+      flex-wrap: wrap;
+      gap: .75rem;
+    }
+
+    .pager-info {
+      font-size: .825rem;
+      color: var(--muted);
+    }
+
+    .pager-links {
+      display: flex;
+      gap: .35rem;
+    }
+
+    .plink {
+      padding: .4rem .7rem;
+      border-radius: 6px;
+      font-size: .825rem;
+      font-weight: 500;
+      text-decoration: none;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      transition: background .15s, color .15s;
+    }
+
+    .plink:hover {
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    .plink.cur {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+      pointer-events: none;
+    }
+
+    .plink.off {
+      opacity: .4;
+      pointer-events: none;
+    }
+
+    .action-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: var(--card);
+      border-top: 1px solid var(--border);
+      padding: .9rem 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
       gap: 1rem;
+      box-shadow: 0 -4px 16px rgba(0, 0, 0, .07);
+      transform: translateY(100%);
+      transition: transform .25s cubic-bezier(.4, 0, .2, 1);
+      z-index: 200;
     }
 
-    .process-section input {
-      max-width: 150px;
+    .action-bar.visible {
+      transform: translateY(0);
     }
 
-    #status-message {
-      margin-top: 1rem;
-      padding: 1rem;
+    .action-bar-info {
+      font-size: .875rem;
+      color: var(--muted);
+    }
+
+    .action-bar-info strong {
+      color: var(--text);
+    }
+
+    .toast-container {
+      position: fixed;
+      top: 74px;
+      right: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: .5rem;
+      z-index: 999;
+    }
+
+    .toast {
+      padding: .8rem 1.1rem;
       border-radius: 8px;
-      display: none;
+      font-size: .875rem;
+      font-weight: 500;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, .12);
+      animation: slideIn .25s ease;
+      max-width: 360px;
     }
 
-    .success {
-      background-color: #dcfce7;
-      color: #166534;
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateX(30px);
+      }
+
+      to {
+        opacity: 1;
+        transform: none;
+      }
     }
 
-    .error {
-      background-color: #fee2e2;
-      color: #991b1b;
+    .toast-success {
+      background: var(--success-light);
+      color: var(--success);
+      border: 1px solid var(--success-border);
     }
 
-    .info {
-      background-color: #dbeafe;
-      color: #1e40af;
+    .toast-error {
+      background: var(--danger-light);
+      color: var(--danger);
+      border: 1px solid #fecaca;
+    }
+
+    .toast-info {
+      background: var(--primary-light);
+      color: var(--primary);
+      border: 1px solid #bfdbfe;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 3.5rem 2rem;
+      color: var(--muted);
+    }
+
+    .empty-state svg {
+      margin-bottom: 1rem;
+      opacity: .35;
+      display: block;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .empty-state p {
+      font-size: .9rem;
     }
   </style>
 </head>
 
 <body>
-  <div class="container">
-    <div class="header">
-      <h1>Expedição e Impressão ZPL</h1>
-      <p style="color: var(--text-muted)">
-        Consulte pedidos e emita etiquetas térmicas
-      </p>
-      <div style="margin-top: 1.5rem; margin-bottom: 1.5rem;">
-        <a href="{% url 'upload_excel' %}"
-          style="background-color: var(--primary); color: white; text-decoration: none; font-weight: 500; display: inline-block; padding: 0.75rem 1.5rem; border-radius: 8px; transition: background-color 0.2s; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
-          Ingestão de Pickings
-        </a>
-      </div>
 
-      {% if messages %}
-      {% for message in messages %}
-      <div
-        style="padding: 1rem; margin-bottom: 1rem; border-radius: 8px; 
-             {% if message.tags == 'success' %}background-color: #dcfce7; color: #166534; border: 1px solid #bbf7d0;{% else %}background-color: #fee2e2; color: #991b1b; border: 1px solid #fecaca;{% endif %}">
-        {{ message }}
-      </div>
-      {% endfor %}
-      {% endif %}
+  <header class="topbar">
+    <div class="topbar-brand">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+        stroke-linejoin="round">
+        <rect x="2" y="7" width="20" height="15" rx="2" />
+        <polyline points="17 2 12 7 7 2" />
+      </svg>
+      Expedição de Pickings
+    </div>
+    <div class="topbar-actions">
+      <span style="font-size:.8rem;color:var(--muted); text-align: right;">
+        <strong id="count-waiting" style="color:var(--text)">{{ total_aguardando }}</strong> aguardando&nbsp;·&nbsp;
+        <strong id="count-confirmed" style="color:var(--text)">{{ total_confirmados }}</strong> confirmadas&nbsp;·&nbsp;
+        <strong id="count-shipped" style="color:var(--text)">{{ total_expedidos }}</strong> expedidas
+      </span>
+      <a href="{% url 'upload_excel' %}" class="btn btn-outline">⬆ Ingestão de Pickings</a>
+    </div>
+  </header>
 
-      <!-- Busca de Pedido -->
-      <div class="card">
-        <form method="GET" action="/">
-          <div class="form-group">
-            <input type="text" name="numero_pedido" placeholder="Digite o Número do Pedido ou Picking"
-              value="{{ search_query|default:'' }}" required />
-            <button type="submit">Buscar Pedido/Picking</button>
-          </div>
+  <div class="page">
+
+    <!-- Barra de busca -->
+    <div class="card" style="margin-bottom:1.25rem;">
+      <div class="card-header">
+        <span class="card-title">Listagem de Pickings</span>
+        <form method="GET" action="/" class="search-bar">
+          <select name="status" class="status-filter" onchange="this.form.submit()">
+            <option value="a_confirmar" {% if is_a_confirmar %}selected{% endif %}>A confirmar volume
+            </option>
+            <option value="confirmados" {% if is_confirmados %}selected{% endif %}>Volume confirmado
+            </option>
+            <option value="expedidas" {% if is_expedidas %}selected{% endif %}>Expedidas e Impressas</option>
+          </select>
+          <input type="text" name="q" placeholder="Buscar picking…" value="{{ search_query|default:'' }}"
+            id="search-input" />
+          {% if search_query %}
+          <a href="/?status={{ status_filter }}" class="btn btn-outline">
+            ✕ Limpar
+          </a>
+          {% else %}
+          <button type="submit" class="btn btn-primary">Buscar</button>
+          {% endif %}
         </form>
-        {% if search_query and not pedido %}
-        <p class="error" style="padding: 1rem; border-radius: 8px">
-          Pedido não encontrado.
-        </p>
-        {% endif %}
       </div>
+    </div>
 
-      {% if pedido %}
-      <!-- Dados do Pedido -->
-      <div class="card">
-        <h3>Detalhes do Pedido #{{ pedido.numero_pedido }} (Picking: {{ pedido.picking }})</h3>
-
-        <div class="info-grid">
-          <div class="info-item">
-            <div class="info-label">Cliente</div>
-            <div class="info-value">{{ pedido.cliente_nome }}</div>
-          </div>
-          <div class="info-item">
-            <div class="info-label">CPF/CNPJ</div>
-            <div class="info-value">{{ pedido.cpf_cnpj|default:"" }}</div>
-          </div>
-          <div class="info-item">
-            <div class="info-label">Rota</div>
-            <div class="info-value">{{ pedido.rota }}</div>
-          </div>
-          <div class="info-item" style="grid-column: 1 / -1">
-            <div class="info-label">Endereço de Entrega</div>
-            <div class="info-value">
-              {{ pedido.endereco_logradouro|default:"" }}
-              {% if pedido.endereco_numero %}, {{ pedido.endereco_numero }}{% endif %}
-              {% if pedido.endereco_bairro %} - {{ pedido.endereco_bairro }}{% endif %}
-              {% if pedido.endereco_cidade %}, {{ pedido.endereco_cidade }}{% endif %}
-              {% if pedido.endereco_uf %}/{{ pedido.endereco_uf }}{% endif %}
-              {% if pedido.endereco_cep %} - CEP: {{ pedido.endereco_cep }}{% endif %}
-            </div>
-          </div>
-        </div>
-
-        <h3>Itens do Pedido</h3>
+    <!-- Tabela principal -->
+    <div class="card">
+      <div class="table-wrap">
         <table>
           <thead>
             <tr>
-              <th>CódigoProduto</th>
-              <th>Descrição</th>
-              <th>Qtd</th>
+              <th width="40">
+                {% if is_confirmados %}
+                <input type="checkbox" id="chk-all" />
+                {% endif %}
+              </th>
+              <th>Picking</th>
+              <th>Pedido</th>
+              <th>Cliente</th>
+              <th style="min-width:200px;">
+                {% if is_a_confirmar %}Volume
+                <span style="color:var(--warning);font-weight:700;">
+                  (confirme para imprimir)</span>{% else %}Volume{% endif %}
+              </th>
+              <th>Status</th>
             </tr>
           </thead>
-          <tbody>
-            {% for item in pedido.itens.all %}
-            <tr>
-              <td>{{ item.codigo_produto }}</td>
-              <td>{{ item.descricao }}</td>
-              <td>{{ item.quantidade }}</td>
+          <tbody id="picking-table-body">
+            {% for pedido in page_obj %}
+            <tr id="row-{{ pedido.id }}" data-id="{{ pedido.id }}">
+              <td align="center">
+                {% if is_confirmados %}
+                <input type="checkbox" class="row-check" id="chk-{{ pedido.id }}" data-id="{{ pedido.id }}">
+                {% elif is_a_confirmar %}
+                <input type="checkbox" class="row-check" id="chk-{{ pedido.id }}" data-id="{{ pedido.id }}" disabled>
+                {% endif %}
+              </td>
+              <td><strong>{{ pedido.picking }}</strong></td>
+              <td>{{ pedido.numero_pedido }}</td>
+              <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"
+                title="{{ pedido.cliente_nome }}">{{ pedido.cliente_nome }}</td>
+              <td>
+                {% if is_expedidas %}
+                <strong style="color:var(--text)">{{ pedido.expedido.total_volumes }} vol(s)</strong>
+                {% else %}
+                <div class="vol-wrapper">
+                  <input type="number" class="vol-input {% if pedido.volume_confirmado %}confirmed{% endif %}"
+                    id="vol-{{ pedido.id }}" value="{{ pedido.volume_confirmado|default:'' }}" placeholder="Qtd."
+                    data-id="{{ pedido.id }}" min="1" />
+                  <button type="button" class="vol-btn {% if pedido.volume_confirmado %}confirmed-btn{% endif %}"
+                    id="vbtn-{{ pedido.id }}" data-id="{{ pedido.id }}" onclick="confirmarVolume(this.dataset.id)">
+                    {% if pedido.volume_confirmado %}✓{% else %}Confirmar{% endif %}
+                  </button>
+                </div>
+                {% endif %}
+              </td>
+              <td>
+                {% if is_expedidas %}
+                <span class="badge badge-confirmed">
+                  ✓ Impresso -
+                  <span style="font-weight:normal;">
+                    {{ pedido.expedido.expedido_em|date:"d/m/Y H:i" }}
+                  </span>
+                </span>
+                {% elif is_confirmados %}
+                <span class="badge badge-confirmed" id="badge-{{ pedido.id }}">
+                  ✓ Confirmado
+                </span>
+                {% else %}
+                <span class="badge badge-pending" id="badge-{{ pedido.id }}">
+                  ⏳ Aguardando
+                </span>
+                {% endif %}
+              </td>
             </tr>
             {% empty %}
             <tr>
-              <td colspan="3" style="text-align: center">
-                Nenhum item encontrado.
+              <td colspan="6">
+                <div class="empty-state">
+                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <circle cx="12" cy="12" r="10" />
+                    <path d="M8 12h8M12 8v8" />
+                  </svg>
+                  <p>
+                    {% if search_query %}
+                    Nenhuma picking encontrada para "<strong>{{ search_query }}</strong>".
+                    {% elif is_confirmados %}
+                    Nenhuma picking confirmada para expedição.
+                    {% elif is_a_confirmar %}
+                    Não há pickings aguardando volume. 🎉
+                    {% else %}
+                    Nenhuma picking foi expedida ainda.
+                    {% endif %}
+                  </p>
+                </div>
               </td>
             </tr>
             {% endfor %}
           </tbody>
         </table>
+      </div>
 
-        <div class="process-section">
-          <div>
-            <label for="total_volumes" class="info-label">Total de Volumes</label>
-            <input type="number" id="total_volumes" min="1" value="1" required />
-          </div>
-          <button id="btn-processar" onclick="processAndPrint('{{ pedido.numero_pedido }}')">
-            Processar e Imprimir
-          </button>
+      <!-- Paginação (somente se necessário) -->
+      {% if page_obj.paginator.num_pages > 1 %}
+      <div class="pager">
+        <span class="pager-info">
+          Mostrando {{ page_obj.start_index }}–{{ page_obj.end_index }} de {{ total_items }}
+        </span>
+        <div class="pager-links">
+          {% if page_obj.has_previous %}
+          <a href="?page=1&status={{ status_filter }}{% if search_query %}&q={{ search_query }}{% endif %}"
+            class="plink">«</a>
+          <a href="?page={{ page_obj.previous_page_number }}&status={{ status_filter }}{% if search_query %}&q={{ search_query }}{% endif %}"
+            class="plink">‹</a>
+          {% else %}
+          <span class="plink off">«</span>
+          <span class="plink off">‹</span>
+          {% endif %}
+          {% for num in page_obj.paginator.page_range %}
+          {% if num >= page_obj.number|add:"-3" and num <= page_obj.number|add:"3" %} <a
+            href="?page={{ num }}&status={{ status_filter }}{% if search_query %}&q={{ search_query }}{% endif %}"
+            class="plink {% if num == page_obj.number %}cur{% endif %}">{{ num }}</a>
+            {% endif %}
+            {% endfor %}
+            {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}&status={{ status_filter }}{% if search_query %}&q={{ search_query }}{% endif %}"
+              class="plink">›</a>
+            <a href="?page={{ page_obj.paginator.num_pages }}&status={{ status_filter }}{% if search_query %}&q={{ search_query }}{% endif %}"
+              class="plink">»</a>
+            {% else %}
+            <span class="plink off">›</span>
+            <span class="plink off">»</span>
+            {% endif %}
         </div>
-
-        <div id="status-message"></div>
       </div>
       {% endif %}
+
     </div>
+  </div>
 
-    {% csrf_token %}
+  <!-- Toasts -->
+  <div class="toast-container" id="toast-container"></div>
 
-    <script>
-      // Configuração de impressão QZ Tray
-      const PRINTER_NAME = "TSC TTP-244CE";
+  <!-- Barra de ação fixa -->
+  <div class="action-bar" id="action-bar">
+    <div class="action-bar-info"><strong id="selected-count">0</strong> picking(s) selecionada(s) para expedição</div>
+    <button class="btn btn-success" id="btn-expedir" onclick="expedirSelecionadas()">🖨 Imprimir &amp; Expedir
+      Selecionadas</button>
+  </div>
 
-      function showMessage(msg, type) {
-        const statusDiv = document.getElementById("status-message");
-        statusDiv.textContent = msg;
-        statusDiv.className = type;
-        statusDiv.style.display = "block";
-      }
+  {% csrf_token %}
 
-      async function initQZ() {
-        if (!qz.websocket.isActive()) {
-          showMessage(
-            "Conectando ao serviço de impressão (QZ Tray)...",
-            "info",
-          );
-          try {
-            // --- Certificado e assinatura para evitar o alerta "untrusted" ---
-            qz.security.setCertificatePromise(function (resolve, reject) {
-              fetch("/qz/certificate/")
-                .then(r => r.text())
-                .then(resolve)
-                .catch(reject);
-            });
+  <script>
+    const PRINTER_NAME = "TSC TTP-244CE";
+    const CSRF_TOKEN = document.querySelector("[name=csrfmiddlewaretoken]").value;
 
-            qz.security.setSignaturePromise(function (toSign) {
-              return function (resolve, reject) {
-                fetch("/qz/sign/", {
-                  method: "POST",
-                  body: toSign,
-                  headers: { "Content-Type": "text/plain" },
-                })
-                  .then(r => r.text())
-                  .then(resolve)
-                  .catch(reject);
-              };
-            });
-            // -----------------------------------------------------------------
+    function showToast(msg, type, ms) {
+      ms = ms || 4000;
+      var c = document.getElementById("toast-container");
+      var t = document.createElement("div");
+      t.className = "toast toast-" + type;
+      t.textContent = msg;
+      c.appendChild(t);
+      setTimeout(function () { t.remove(); }, ms);
+    }
 
-            await qz.websocket.connect();
-            return true;
-          } catch (err) {
-            showMessage(
-              "Erro ao conectar ao QZ Tray. Certifique-se de que ele está rodando.",
-              "error",
-            );
-            console.error(err);
-            return false;
-          }
+    function updateActionBar() {
+      var n = document.querySelectorAll(".row-check:checked").length;
+      document.getElementById("selected-count").textContent = n;
+      document.getElementById("action-bar").classList.toggle("visible", n > 0);
+    }
+
+    function updateConfirmedCount() {
+      // Atualiza os contadores globais no cabeçalho via JS para feedback imediato
+      var waitEl = document.getElementById("count-waiting");
+      var confEl = document.getElementById("count-confirmed");
+      if (waitEl && confEl) {
+        var wait = parseInt(waitEl.textContent) || 0;
+        var conf = parseInt(confEl.textContent) || 0;
+        if (wait > 0) {
+          waitEl.textContent = wait - 1;
+          confEl.textContent = conf + 1;
         }
-        return true;
       }
+    }
 
-      async function printZPL(zplCommands) {
-        try {
-          const config = qz.configs.create(PRINTER_NAME);
+    document.addEventListener("change", function (e) {
+      if (e.target.classList.contains("row-check")) updateActionBar();
+    });
 
-          // Preparando array de dados brutos
-          let printData = [];
-          zplCommands.forEach((zpl) => {
-            printData.push(zpl);
-          });
+    document.getElementById("chk-all").addEventListener("change", function () {
+      var all = document.querySelectorAll(".row-check:not(:disabled)");
+      all.forEach(function (cb) { cb.checked = this.checked; }, this);
+      updateActionBar();
+    });
 
-          showMessage("Enviando para a impressora...", "info");
-          await qz.print(config, printData);
-          showMessage("Etiquetas impressas com sucesso!", "success");
-        } catch (err) {
-          showMessage("Erro ao imprimir: " + err, "error");
+    function confirmarVolume(pedidoId) {
+      var input = document.getElementById("vol-" + pedidoId);
+      var vol = parseInt(input.value);
+      if (!vol || vol < 1) { showToast("Digite um volume válido (mínimo 1).", "error"); input.focus(); return; }
+
+      var btn = document.getElementById("vbtn-" + pedidoId);
+      var badge = document.getElementById("badge-" + pedidoId);
+      var chk = document.getElementById("chk-" + pedidoId);
+      btn.disabled = true;
+      btn.textContent = "…";
+
+      fetch("/confirmar-volume/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-CSRFToken": CSRF_TOKEN },
+        body: JSON.stringify({ pedido_id: pedidoId, total_volumes: vol })
+      }).then(function (res) {
+        return res.json().then(function (data) { return { ok: res.ok, data: data }; });
+      }).then(function (r) {
+        if (r.ok && r.data.success) {
+          input.classList.add("confirmed");
+          btn.classList.add("confirmed-btn");
+          btn.textContent = "✓";
+          badge.className = "badge badge-confirmed";
+          badge.textContent = "✓ Confirmado";
+          chk.disabled = false;
+          chk.checked = true; // Auto-seleciona para facilitar impressão em massa
+          updateConfirmedCount();
+          updateActionBar(); // Força a barra inferior a aparecer com a nova seleção
+          showToast("Volume " + vol + " confirmado!", "success", 2500);
+        } else {
+          showToast(r.data.error || "Erro ao confirmar.", "error");
+          btn.textContent = "Confirmar";
+        }
+        btn.disabled = false;
+      }).catch(function () {
+        showToast("Erro de rede.", "error");
+        btn.textContent = "Confirmar";
+        btn.disabled = false;
+      });
+    }
+
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Enter" && e.target.classList.contains("vol-input")) {
+        confirmarVolume(parseInt(e.target.dataset.id));
+      }
+    });
+
+    function initQZ() {
+      return new Promise(function (resolve) {
+        if (qz.websocket.isActive()) { resolve(true); return; }
+        showToast("Conectando ao QZ Tray…", "info");
+        qz.security.setCertificatePromise(function (res, rej) {
+          fetch("/qz/certificate/").then(function (r) { return r.text(); }).then(res).catch(rej);
+        });
+        qz.security.setSignaturePromise(function (toSign) {
+          return function (res, rej) {
+            fetch("/qz/sign/", { method: "POST", body: toSign, headers: { "Content-Type": "text/plain" } })
+              .then(function (r) { return r.text(); }).then(res).catch(rej);
+          };
+        });
+        qz.websocket.connect().then(function () { resolve(true); }).catch(function (err) {
+          showToast("Erro ao conectar ao QZ Tray. Verifique se ele está rodando.", "error", 6000);
           console.error(err);
-        }
-      }
+          resolve(false);
+        });
+      });
+    }
 
-      async function processAndPrint(numeroPedido) {
-        const btn = document.getElementById("btn-processar");
-        const totalVolumes = document.getElementById("total_volumes").value;
-        const csrfToken = document.querySelector(
-          "[name=csrfmiddlewaretoken]",
-        ).value;
+    function expedirSelecionadas() {
+      var checks = Array.from(document.querySelectorAll(".row-check:checked"));
+      if (!checks.length) return;
+      var pedidoIds = checks.map(function (c) { return parseInt(c.dataset.id); });
+      var btn = document.getElementById("btn-expedir");
+      btn.disabled = true;
+      btn.textContent = "Processando…";
+      showToast("Gerando etiquetas no servidor…", "info");
 
-        if (totalVolumes < 1) {
-          alert("O total de volumes deve ser pelo menos 1.");
+      fetch("/expedir/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-CSRFToken": CSRF_TOKEN },
+        body: JSON.stringify({ pedido_ids: pedidoIds })
+      }).then(function (res) {
+        return res.json().then(function (data) { return { ok: res.ok, data: data }; });
+      }).then(function (r) {
+        if (!r.ok || !r.data.success) {
+          showToast(r.data.error || "Erro desconhecido.", "error", 6000);
+          btn.disabled = false;
+          btn.textContent = "🖨 Imprimir & Expedir Selecionadas";
           return;
         }
-
-        btn.disabled = true;
-        btn.textContent = "Processando...";
-        showMessage("Processando volumes no servidor...", "info");
-
-        try {
-          const response = await fetch("/process/", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "X-CSRFToken": csrfToken,
-            },
-            body: JSON.stringify({
-              numero_pedido: numeroPedido,
-              total_volumes: parseInt(totalVolumes),
-            }),
+        var zplCommands = r.data.zpl_commands;
+        return initQZ().then(function (connected) {
+          if (!connected) { btn.disabled = false; btn.textContent = "🖨 Imprimir & Expedir Selecionadas"; return; }
+          var config = qz.configs.create(PRINTER_NAME);
+          showToast("Enviando para impressora…", "info", 3000);
+          return qz.print(config, zplCommands).then(function () {
+            pedidoIds.forEach(function (id) { var row = document.getElementById("row-" + id); if (row) row.remove(); });
+            updateActionBar();
+            updateConfirmedCount();
+            showToast(pedidoIds.length + " picking(s) expedida(s) com sucesso! ✓", "success", 5000);
+            var tbody = document.getElementById("picking-table-body");
+            if (!tbody.querySelector("tr")) setTimeout(function () { location.reload(); }, 2500);
+            btn.disabled = false;
+            btn.textContent = "🖨 Imprimir & Expedir Selecionadas";
           });
+        });
+      }).catch(function (err) {
+        showToast("Erro de rede ao expedir.", "error");
+        console.error(err);
+        btn.disabled = false;
+        btn.textContent = "🖨 Imprimir & Expedir Selecionadas";
+      });
+    }
 
-          const data = await response.json();
-
-          if (response.ok && data.success) {
-            // Inicializar QZ Tray e Imprimir
-            const connected = await initQZ();
-            if (connected) {
-              await printZPL(data.zpl_commands);
-            }
-          } else {
-            showMessage(
-              "Erro no servidor: " + (data.error || "Desconhecido"),
-              "error",
-            );
-          }
-        } catch (error) {
-          showMessage("Erro de rede ao processar.", "error");
-          console.error(error);
-        } finally {
-          btn.disabled = false;
-          btn.textContent = "Processar e Imprimir";
-        }
-      }
-    </script>
+    updateConfirmedCount();
+    updateActionBar();
+  </script>
 </body>
 
 </html>

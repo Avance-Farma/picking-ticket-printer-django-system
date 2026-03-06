@@ -14,6 +14,8 @@ class Pedido(models.Model):
     endereco_cidade = models.TextField(blank=True, null=True)
     endereco_uf = models.CharField(max_length=2, blank=True, null=True)
     endereco_cep = models.CharField(max_length=15, blank=True, null=True)
+    volume_confirmado = models.IntegerField(blank=True, null=True)
+    volume_confirmado_em = models.DateTimeField(blank=True, null=True)
     criado_em = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -81,3 +83,15 @@ class ImportBatch(models.Model):
         
     def __str__(self):
         return f"Lote {self.id} - {self.status} ({self.processed_files}/{self.total_files})"
+
+
+class PedidoExpedido(models.Model):
+    pedido = models.OneToOneField(Pedido, on_delete=models.CASCADE, related_name="expedido")
+    total_volumes = models.IntegerField()
+    expedido_em = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "pedidos_expedidos"
+
+    def __str__(self):
+        return f"Expedido: Picking {self.pedido.picking} - {self.total_volumes} vol(s) em {self.expedido_em:%d/%m/%Y %H:%M}"
