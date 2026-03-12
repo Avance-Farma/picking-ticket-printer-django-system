@@ -2,13 +2,13 @@ from rest_framework import serializers
 
 from apps.addresses.models import Address
 from apps.customers.models import Customer
-from apps.products.models import Product
 
 from .models import Order, OrderItem
 
 
 class OrderItemSerializer(serializers.ModelSerializer):
-    # Product fields: description + sku_code (Product model has no 'name'/'code')
+    # Product fields: description + sku_code
+    # (Product model has no 'name'/'code')
     product_description = serializers.CharField(
         source="product.description", read_only=True
     )

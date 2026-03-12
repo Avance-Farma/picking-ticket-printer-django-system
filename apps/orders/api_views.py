@@ -255,3 +255,53 @@ class BulkProcessVolumesAPIView(APIView):
             "zpl_commands": zpl_commands,
             "errors": errors,
         })
+
+
+class ConvertZPLToPDFAPIView(APIView):
+    """
+    POST /orders/api/v1/volumes/to-pdf/
+
+    Recebe uma lista de strings ZPL e usa a Labelary API para
+    retornar um PDF de múltiplas páginas com todas as etiquetas.
+    """
+
+    def post(self, request, *args, **kwargs):
+        from django.http import HttpResponse
+
+        from apps.ticket_printer.services.labelary_service import (
+            LabelaryService,
+        )
+
+        zpl_commands = request.data.get("zpl_commands", [])
+
+        if not zpl_commands or not isinstance(zpl_commands, list):
+            return Response(
+                {
+                    "error": (
+                        "JSON inválido. 'zpl_commands' "
+                        "deve ser uma lista não vazia."
+                    )
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            pdf_bytes = LabelaryService.generate_pdf(zpl_commands)
+
+            response = HttpResponse(pdf_bytes, content_type="application/pdf")
+            response["Content-Disposition"] = (
+                'attachment; filename="etiquetas.pdf"'
+            )
+            return response
+        except Exception as e:
+            logger.exception("Erro ao converter ZPL para PDF")
+            sentry_sdk.capture_exception(e)
+            return Response(
+                {
+                    "error": (
+                        "Falha de comunicação com o "
+                        "serviço de renderização PDF."
+                    )
+                },
+                status=status.HTTP_502_BAD_GATEWAY,
+            )

@@ -1,4 +1,5 @@
 import pytest
+
 from apps.imports.services.file_processors import ExcelProcessor
 from apps.imports.services.processor_factory import ProcessorFactory
 
@@ -35,8 +36,8 @@ class TestFileProcessors:
     def test_factory_returns_correct_processor(self):
         # Act & Assert
         from apps.imports.services.file_processors import (
-            PDFProcessor,
             DocxProcessor,
+            PDFProcessor,
         )
 
         assert isinstance(

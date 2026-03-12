@@ -103,6 +103,27 @@ services:
     networks:
       - backend
 
+  # ─── MkDocs Live Server (Development) ────────────────────────────────────
+  docs:
+    build:
+      context: ../../
+      dockerfile: docker/django/Dockerfile
+      target: runtime
+      args:
+        INSTALL_DEV: "true"
+    restart: unless-stopped
+    command: /bin/sh -c "/app/.venv/bin/mkdocs serve -a 0.0.0.0:8001"
+    entrypoint: []
+    environment:
+      - UV_CACHE_DIR=/tmp/uv_cache
+    volumes:
+      - ../../:/app
+      - /app/.venv
+    ports:
+      - "8001:8001"
+    networks:
+      - frontend
+
   # ─── Nginx Reverse Proxy (Development) ───────────────────────────────────
   nginx:
     build:

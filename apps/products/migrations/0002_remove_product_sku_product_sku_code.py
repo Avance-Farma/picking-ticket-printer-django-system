@@ -4,20 +4,21 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('products', '0001_add_total_volumes_and_confirmed_status'),
+        ("products", "0001_add_total_volumes_and_confirmed_status"),
     ]
 
     operations = [
         migrations.RemoveField(
-            model_name='product',
-            name='sku',
+            model_name="product",
+            name="sku",
         ),
         migrations.AddField(
-            model_name='product',
-            name='sku_code',
-            field=models.CharField(default='', max_length=50, verbose_name='Código SKU'),
+            model_name="product",
+            name="sku_code",
+            field=models.CharField(
+                default="", max_length=50, verbose_name="Código SKU"
+            ),
             preserve_default=False,
         ),
     ]

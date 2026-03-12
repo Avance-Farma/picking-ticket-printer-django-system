@@ -36,11 +36,12 @@ markdown_extensions:
       anchor_linenums: true
   - pymdownx.inlinehilite
   - pymdownx.snippets
-  - pymdownx.tasklists:
+  - pymdownx.tasklist:
       custom_checkbox: true
 
 nav:
   - Início: index.md
+  - Manual de Utilização: manual/user_manual.md
   - Arquitetura: architecture.md
   - Componentes:
       - Apps: components/apps.md

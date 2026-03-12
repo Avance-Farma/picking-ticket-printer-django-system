@@ -4,15 +4,14 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('addresses', '0001_add_total_volumes_and_confirmed_status'),
+        ("addresses", "0001_add_total_volumes_and_confirmed_status"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='address',
-            name='zip_code',
+            model_name="address",
+            name="zip_code",
             field=models.CharField(max_length=20),
         ),
     ]

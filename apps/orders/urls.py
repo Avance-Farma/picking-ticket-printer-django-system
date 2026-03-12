@@ -4,6 +4,7 @@ from .api_views import (
     BulkProcessVolumesAPIView,
     ConfirmShippedAPIView,
     ConfirmVolumesAPIView,
+    ConvertZPLToPDFAPIView,
     MarkFailedAPIView,
     OrderDetailByPkAPIView,
     OrderListAPIView,
@@ -49,5 +50,11 @@ urlpatterns = [
         "api/v1/orders/detail/<int:pk>/",
         OrderDetailByPkAPIView.as_view(),
         name="api-order-detail-pk",
+    ),
+    # Proxy para conversão das etiquetas em PDF pelo Labelary
+    path(
+        "api/v1/volumes/to-pdf/",
+        ConvertZPLToPDFAPIView.as_view(),
+        name="api-convert-pdf",
     ),
 ]

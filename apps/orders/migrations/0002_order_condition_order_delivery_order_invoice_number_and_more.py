@@ -5,86 +5,125 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('deliveries', '0001_initial'),
-        ('orders', '0001_add_total_volumes_and_confirmed_status'),
+        ("deliveries", "0001_initial"),
+        ("orders", "0001_add_total_volumes_and_confirmed_status"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='order',
-            name='condition',
-            field=models.CharField(blank=True, max_length=100, verbose_name='Condição'),
+            model_name="order",
+            name="condition",
+            field=models.CharField(
+                blank=True, max_length=100, verbose_name="Condição"
+            ),
         ),
         migrations.AddField(
-            model_name='order',
-            name='delivery',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to='deliveries.delivery'),
+            model_name="order",
+            name="delivery",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                to="deliveries.delivery",
+            ),
         ),
         migrations.AddField(
-            model_name='order',
-            name='invoice_number',
-            field=models.CharField(blank=True, max_length=50, verbose_name='NF'),
+            model_name="order",
+            name="invoice_number",
+            field=models.CharField(
+                blank=True, max_length=50, verbose_name="NF"
+            ),
         ),
         migrations.AddField(
-            model_name='order',
-            name='net_weight',
-            field=models.DecimalField(blank=True, decimal_places=4, max_digits=15, null=True, verbose_name='Peso Líquido'),
+            model_name="order",
+            name="net_weight",
+            field=models.DecimalField(
+                blank=True,
+                decimal_places=4,
+                max_digits=15,
+                null=True,
+                verbose_name="Peso Líquido",
+            ),
         ),
         migrations.AddField(
-            model_name='order',
-            name='operation',
-            field=models.CharField(blank=True, max_length=100, verbose_name='Operação'),
+            model_name="order",
+            name="operation",
+            field=models.CharField(
+                blank=True, max_length=100, verbose_name="Operação"
+            ),
         ),
         migrations.AddField(
-            model_name='order',
-            name='origin',
-            field=models.CharField(blank=True, max_length=100, verbose_name='Origem'),
+            model_name="order",
+            name="origin",
+            field=models.CharField(
+                blank=True, max_length=100, verbose_name="Origem"
+            ),
         ),
         migrations.AddField(
-            model_name='order',
-            name='pending_payment',
-            field=models.CharField(blank=True, max_length=100, verbose_name='Pendência'),
+            model_name="order",
+            name="pending_payment",
+            field=models.CharField(
+                blank=True, max_length=100, verbose_name="Pendência"
+            ),
         ),
         migrations.AddField(
-            model_name='order',
-            name='pre_invoice_date',
-            field=models.DateTimeField(blank=True, null=True, verbose_name='Pré-Nota'),
+            model_name="order",
+            name="pre_invoice_date",
+            field=models.DateTimeField(
+                blank=True, null=True, verbose_name="Pré-Nota"
+            ),
         ),
         migrations.AddField(
-            model_name='order',
-            name='release_date',
-            field=models.DateTimeField(blank=True, null=True, verbose_name='Liberação'),
+            model_name="order",
+            name="release_date",
+            field=models.DateTimeField(
+                blank=True, null=True, verbose_name="Liberação"
+            ),
         ),
         migrations.AddField(
-            model_name='order',
-            name='releaser',
-            field=models.CharField(blank=True, max_length=100, verbose_name='Liberador'),
+            model_name="order",
+            name="releaser",
+            field=models.CharField(
+                blank=True, max_length=100, verbose_name="Liberador"
+            ),
         ),
         migrations.AddField(
-            model_name='order',
-            name='salesperson',
-            field=models.CharField(blank=True, max_length=100, verbose_name='Vendedor'),
+            model_name="order",
+            name="salesperson",
+            field=models.CharField(
+                blank=True, max_length=100, verbose_name="Vendedor"
+            ),
         ),
         migrations.AddField(
-            model_name='order',
-            name='scheduled_date',
-            field=models.CharField(blank=True, max_length=50, verbose_name='Data Programada'),
+            model_name="order",
+            name="scheduled_date",
+            field=models.CharField(
+                blank=True, max_length=50, verbose_name="Data Programada"
+            ),
         ),
         migrations.AddField(
-            model_name='order',
-            name='typing_date',
-            field=models.DateTimeField(blank=True, null=True, verbose_name='Digitação'),
+            model_name="order",
+            name="typing_date",
+            field=models.DateTimeField(
+                blank=True, null=True, verbose_name="Digitação"
+            ),
         ),
         migrations.AddField(
-            model_name='order',
-            name='typist',
-            field=models.CharField(blank=True, max_length=100, verbose_name='Digitador'),
+            model_name="order",
+            name="typist",
+            field=models.CharField(
+                blank=True, max_length=100, verbose_name="Digitador"
+            ),
         ),
         migrations.AlterField(
-            model_name='order',
-            name='status',
-            field=models.CharField(blank=True, default='pending', max_length=100, verbose_name='Situação'),
+            model_name="order",
+            name="status",
+            field=models.CharField(
+                blank=True,
+                default="pending",
+                max_length=100,
+                verbose_name="Situação",
+            ),
         ),
     ]

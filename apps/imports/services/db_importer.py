@@ -20,7 +20,8 @@ def _parse_date(date_str: str | None) -> datetime | None:
     # Excel OLE date serial (e.g. "46078.4375") — xlrd/pandas gives raw floats
     try:
         serial = float(date_str)
-        # Excel serials are always > 1 (day 1 = 1900-01-01) and < 2958466 (9999-12-31)
+        # Excel serials are always > 1 (day 1 = 1900-01-01)
+        # and < 2958466 (9999-12-31)
         if 1.0 < serial < 2958466.0:
             import xlrd
 
@@ -115,7 +116,7 @@ class DatabaseImporter:
 
             # Create or update Order (thread-safe update_or_create)
             order, _ = Order.objects.update_or_create(
-                order_number=order_number, 
+                order_number=order_number,
                 picking=picking,
                 defaults={
                     "order_route": order_data.get("route", ""),
@@ -125,8 +126,12 @@ class DatabaseImporter:
                     "status": "pending",
                     "situation": order_data.get("situation") or "",
                     "typing_date": _parse_date(order_data.get("typing_date")),
-                    "release_date": _parse_date(order_data.get("release_date")),
-                    "pre_invoice_date": _parse_date(order_data.get("pre_invoice_date")),
+                    "release_date": _parse_date(
+                        order_data.get("release_date")
+                    ),
+                    "pre_invoice_date": _parse_date(
+                        order_data.get("pre_invoice_date")
+                    ),
                     "invoice_number": order_data.get("invoice_number") or "",
                     "scheduled_date": order_data.get("scheduled_date") or "",
                     "condition": order_data.get("condition") or "",
@@ -137,7 +142,7 @@ class DatabaseImporter:
                     "releaser": order_data.get("releaser") or "",
                     "pending_payment": order_data.get("pending_payment") or "",
                     "net_weight": _parse_decimal(order_data.get("net_weight")),
-                }
+                },
             )
 
             # Reset previous items for re-importing
@@ -147,7 +152,9 @@ class DatabaseImporter:
             for product_data in products_data:
                 sku_code = str(product_data.get("product_code", "")).strip()
                 description = product_data.get("description", "")
-                price = _parse_decimal(product_data.get("price")) or Decimal("0.00")
+                price = _parse_decimal(product_data.get("price")) or Decimal(
+                    "0.00"
+                )
 
                 if not sku_code:
                     continue

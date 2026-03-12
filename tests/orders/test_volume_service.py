@@ -60,7 +60,8 @@ class TestVolumeService:
 
     def test_process_and_print_persists_total_volumes(self):
         """
-        Após impressão, total_volumes deve persistir para consulta de relatório.
+        Após impressão, total_volumes deve persistir para consulta de
+        relatório.
         """
         order = OrderFactory(status="confirmed")
         VolumeService.process_and_print(order, total_volumes=4)

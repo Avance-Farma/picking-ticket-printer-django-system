@@ -4,31 +4,74 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
-    dependencies = [
-    ]
+    dependencies = []
 
     operations = [
         migrations.CreateModel(
-            name='Delivery',
+            name="Delivery",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('carrier', models.CharField(blank=True, max_length=255, verbose_name='Transportadora')),
-                ('delivery', models.CharField(blank=True, max_length=255, verbose_name='Entrega')),
-                ('route', models.CharField(blank=True, max_length=255, verbose_name='Rota')),
-                ('manifest', models.CharField(blank=True, max_length=255, verbose_name='Romaneio')),
-                ('vehicle', models.CharField(blank=True, max_length=255, verbose_name='Veículo')),
-                ('driver', models.CharField(blank=True, max_length=255, verbose_name='Motorista')),
-                ('helper', models.CharField(blank=True, max_length=255, verbose_name='Ajudante')),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "carrier",
+                    models.CharField(
+                        blank=True,
+                        max_length=255,
+                        verbose_name="Transportadora",
+                    ),
+                ),
+                (
+                    "delivery",
+                    models.CharField(
+                        blank=True, max_length=255, verbose_name="Entrega"
+                    ),
+                ),
+                (
+                    "route",
+                    models.CharField(
+                        blank=True, max_length=255, verbose_name="Rota"
+                    ),
+                ),
+                (
+                    "manifest",
+                    models.CharField(
+                        blank=True, max_length=255, verbose_name="Romaneio"
+                    ),
+                ),
+                (
+                    "vehicle",
+                    models.CharField(
+                        blank=True, max_length=255, verbose_name="Veículo"
+                    ),
+                ),
+                (
+                    "driver",
+                    models.CharField(
+                        blank=True, max_length=255, verbose_name="Motorista"
+                    ),
+                ),
+                (
+                    "helper",
+                    models.CharField(
+                        blank=True, max_length=255, verbose_name="Ajudante"
+                    ),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
             ],
             options={
-                'verbose_name': 'Entrega (Transporte)',
-                'verbose_name_plural': 'Entregas (Transporte)',
-                'db_table': 'deliveries',
+                "verbose_name": "Entrega (Transporte)",
+                "verbose_name_plural": "Entregas (Transporte)",
+                "db_table": "deliveries",
             },
         ),
     ]

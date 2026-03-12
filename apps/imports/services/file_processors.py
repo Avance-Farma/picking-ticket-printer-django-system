@@ -13,13 +13,48 @@ class ProcessingError(Exception):
 
 class FileProcessor(ABC):
     COMMON_LABELS = [
-        "Picking", "N[º°]", "Pedido", "Nr", "Cliente", "Cód. Cliente", "CPF/CNPJ",
-        "Endereço", "Bairro", "Cidade", "Estado", "Cep", "Telefone", "Ref.",
-        "Volumes", "Peso Líquido", "Transportadora", "Entrega", "Romaneio",
-        "Digitação", "Digitacao", "Liberação", "Liberacao", "Pré[ \t]*-?[ \t]*Nota",
-        "Pre-Nota", "Data Programada", "Situação", "Situacao", "Pendência", "Pendencia",
-        "NF", "Condição", "Condicao", "Operação", "Operacao", "Origem",
-        "Vendedor", "Digitador", "Liberador", "Veículo", "Motorista", "Ajudante"
+        "Picking",
+        "N[º°]",
+        "Pedido",
+        "Nr",
+        "Cliente",
+        "Cód. Cliente",
+        "CPF/CNPJ",
+        "Endereço",
+        "Bairro",
+        "Cidade",
+        "Estado",
+        "Cep",
+        "Telefone",
+        "Ref.",
+        "Volumes",
+        "Peso Líquido",
+        "Transportadora",
+        "Entrega",
+        "Romaneio",
+        "Digitação",
+        "Digitacao",
+        "Liberação",
+        "Liberacao",
+        "Pré[ \t]*-?[ \t]*Nota",
+        "Pre-Nota",
+        "Data Programada",
+        "Situação",
+        "Situacao",
+        "Pendência",
+        "Pendencia",
+        "NF",
+        "Condição",
+        "Condicao",
+        "Operação",
+        "Operacao",
+        "Origem",
+        "Vendedor",
+        "Digitador",
+        "Liberador",
+        "Veículo",
+        "Motorista",
+        "Ajudante",
     ]
 
     @abstractmethod
@@ -30,30 +65,31 @@ class FileProcessor(ABC):
     def _clean_value(self, value: Any) -> str:
         if value is None:
             return ""
-        
+
         # Converte para string se não for
         s = str(value).strip()
-        
+
         if not s:
             return ""
 
         # Tenta encontrar outros labels conhecidos dentro do valor
         import re
+
         # Busca por label: ou label [espaço] dependendo do contexto
         labels_pattern = r"(?i)(" + "|".join(self.COMMON_LABELS) + r")[:\s]"
-        
+
         # Loop para limpar labels repetidos ou extras
         while s:
             match = re.search(labels_pattern, s)
             if not match:
                 break
-                
+
             if match.start() == 0:
                 # Começa com rótulo, removemos e continuamos
-                s = s[match.end():].strip()
+                s = s[match.end() :].strip()
             else:
                 # Encontrou rótulo no meio, corta ali
-                s = s[:match.start()].strip()
+                s = s[: match.start()].strip()
                 break
 
         return s.strip(" :")
@@ -139,12 +175,16 @@ class ExcelProcessor(FileProcessor):
                 or self._find_after(header_df, "Estado")
                 or ""
             ).strip(),
-            "address_city": self._clean_value(self._find_after(header_df, "Cidade")),
+            "address_city": self._clean_value(
+                self._find_after(header_df, "Cidade")
+            ),
             "address_zip_code": self._clean_value(
                 self._find_after(header_df, "Cep")
                 or self._find_after(header_df, "CEP")
             ),
-            "id_number": self._clean_value(self._find_after(header_df, "CPF/CNPJ")),
+            "id_number": self._clean_value(
+                self._find_after(header_df, "CPF/CNPJ")
+            ),
             "total_volumes": self._try_parse_int(
                 self._find_after(header_df, "Volumes")
             ),
@@ -164,23 +204,42 @@ class ExcelProcessor(FileProcessor):
                 or self._find_after(header_df, "Pre-Nota")
             ),
             "invoice_number": self._clean_value(
-                self._find_after(header_df, "NF") or self._find_after(header_df, "NF:")
+                self._find_after(header_df, "NF")
+                or self._find_after(header_df, "NF:")
             ),
             "scheduled_date": self._clean_value(
                 self._find_after(header_df, "Data Programada")
                 or self._find_after(header_df, "Programada")
             ),
-            "condition": self._clean_value(self._find_after(header_df, "Condição")),
-            "operation": self._clean_value(self._find_after(header_df, "Operação")),
+            "condition": self._clean_value(
+                self._find_after(header_df, "Condição")
+            ),
+            "operation": self._clean_value(
+                self._find_after(header_df, "Operação")
+            ),
             "origin": self._clean_value(self._find_after(header_df, "Origem")),
-            "typist": self._clean_value(self._find_after(header_df, "Digitador")),
-            "salesperson": self._clean_value(self._find_after(header_df, "Vendedor")),
-            "releaser": self._clean_value(self._find_after(header_df, "Liberador")),
-            "situation": self._clean_value(self._find_after(header_df, "Situação")),
-            "pending_payment": self._clean_value(self._find_after(header_df, "Pendência")),
+            "typist": self._clean_value(
+                self._find_after(header_df, "Digitador")
+            ),
+            "salesperson": self._clean_value(
+                self._find_after(header_df, "Vendedor")
+            ),
+            "releaser": self._clean_value(
+                self._find_after(header_df, "Liberador")
+            ),
+            "situation": self._clean_value(
+                self._find_after(header_df, "Situação")
+            ),
+            "pending_payment": self._clean_value(
+                self._find_after(header_df, "Pendência")
+            ),
             "net_weight": self._find_after(header_df, "Peso Líquido"),
-            "phone": self._clean_value(self._find_after(header_df, "Telefone")),
-            "customer_reference": self._clean_value(self._find_after(header_df, "Ref.")),
+            "phone": self._clean_value(
+                self._find_after(header_df, "Telefone")
+            ),
+            "customer_reference": self._clean_value(
+                self._find_after(header_df, "Ref.")
+            ),
             "products": [],
         }
 
@@ -209,7 +268,8 @@ class ExcelProcessor(FileProcessor):
             for c in range(cols):
                 res = self._check_cell_for_label(df, r, c, lbl, cols)
                 if res:
-                    # Se o resultado for igual ao label, ignorar e continuar procurando
+                    # Se o resultado for igual ao label, ignorar e
+                    # continuar procurando
                     if res.lower().strip(" :") == lbl:
                         continue
                     return res
@@ -238,12 +298,20 @@ class ExcelProcessor(FileProcessor):
         return None
 
     def _matches_label(self, low: str, lbl: str) -> bool:
-        # Rótulos comuns que podem aparecer como valores em outros campos (ex: Origem: Vendedor)
-        # Para esses, exigimos o dois pontos ou que não seja a célula inteira sem sinalização.
-        ambiguous = ["vendedor", "digitador", "liberador", "situação", "origem", "pendência"]
+        # Rótulos comuns que podem aparecer como valores em outros campos
+        # (ex: Origem: Vendedor). Para esses, exigimos o dois pontos ou
+        # que não seja a célula inteira sem sinalização.
+        ambiguous = [
+            "vendedor",
+            "digitador",
+            "liberador",
+            "situação",
+            "origem",
+            "pendência",
+        ]
         if lbl in ambiguous:
             return (lbl + ":") in low or (lbl + " :") in low
-            
+
         return (
             low.startswith(lbl)
             or (lbl + ":") in low
@@ -264,8 +332,9 @@ class ExcelProcessor(FileProcessor):
     ) -> str | None:
         # Procuramos até 15 células à frente.
         import re
+
         labels_pattern = r"(?i)^(" + "|".join(self.COMMON_LABELS) + r")[:\s]"
-        
+
         for i in range(1, 16):
             if c + i >= cols:
                 break
@@ -275,7 +344,7 @@ class ExcelProcessor(FileProcessor):
                 # assumimos que o campo atual está vazio e paramos a busca.
                 if re.search(labels_pattern, v):
                     return None
-                    
+
                 return v
         return None
 
@@ -402,57 +471,112 @@ class PDFProcessor(FileProcessor):
                 return match.group(1).strip() if match else default
 
             order_data = {
-                "order_number": extract_regex(r"(?:Pedido|N[º°]?):\s*([^\s]+)", text),
-                "picking": self._clean_value(extract_regex(r"Picking:\s*([^\s]+)", text)),
-                "route": self._clean_value(extract_regex(r"Rota:\s*([^\n]+)", text)),
-                "customer_code": self._clean_value(extract_regex(r"Cliente:\s*(\d+)", text)),
-                "customer_name": self._clean_value(extract_regex(
-                    r"Cliente:\s*\d+\s*-\s*([^\n]+)", text
-                )),
-                "address_street": self._clean_value(extract_regex(
-                    r"Endereço:\s*([^\nBairro:]+)", text
-                )),
-                "address_district": self._clean_value(extract_regex(r"Bairro:\s*([^\n]+)", text)),
-                "address_state": self._clean_value(extract_regex(r"Estado:\s*([A-Za-z]+)", text)),
-                "address_city": self._clean_value(extract_regex(
-                    r"Cidade:\s*([^\nEstado:]+)", text
-                )),
-                "address_zip_code": self._clean_value(extract_regex(r"Cep:\s*([\d-]+)", text)),
-                "id_number": self._clean_value(extract_regex(r"CPF/CNPJ:\s*([\d./-]+)", text)),
-                "phone": self._clean_value(extract_regex(r"Telefone:\s*([\d\s-]+)", text)),
-                "customer_reference": self._clean_value(extract_regex(
-                    r"Ref\.:\s*([^\n]*)", text
-                )),
+                "order_number": extract_regex(
+                    r"(?:Pedido|N[º°]?):\s*([^\s]+)", text
+                ),
+                "picking": self._clean_value(
+                    extract_regex(r"Picking:\s*([^\s]+)", text)
+                ),
+                "route": self._clean_value(
+                    extract_regex(r"Rota:\s*([^\n]+)", text)
+                ),
+                "customer_code": self._clean_value(
+                    extract_regex(r"Cliente:\s*(\d+)", text)
+                ),
+                "customer_name": self._clean_value(
+                    extract_regex(r"Cliente:\s*\d+\s*-\s*([^\n]+)", text)
+                ),
+                "address_street": self._clean_value(
+                    extract_regex(r"Endereço:\s*([^\nBairro:]+)", text)
+                ),
+                "address_district": self._clean_value(
+                    extract_regex(r"Bairro:\s*([^\n]+)", text)
+                ),
+                "address_state": self._clean_value(
+                    extract_regex(r"Estado:\s*([A-Za-z]+)", text)
+                ),
+                "address_city": self._clean_value(
+                    extract_regex(r"Cidade:\s*([^\nEstado:]+)", text)
+                ),
+                "address_zip_code": self._clean_value(
+                    extract_regex(r"Cep:\s*([\d-]+)", text)
+                ),
+                "id_number": self._clean_value(
+                    extract_regex(r"CPF/CNPJ:\s*([\d./-]+)", text)
+                ),
+                "phone": self._clean_value(
+                    extract_regex(r"Telefone:\s*([\d\s-]+)", text)
+                ),
+                "customer_reference": self._clean_value(
+                    extract_regex(r"Ref\.:\s*([^\n]*)", text)
+                ),
                 "total_volumes": 0,
-                "typing_date": self._clean_value(extract_regex(
-                    r"Digita[çc][ãa]o:\s*([\d/]+ - [\d:]+)", text
-                )),
-                "release_date": self._clean_value(extract_regex(
-                    r"Libera[çc][ãa]o:\s*([\d/]+ - [\d:]+)", text
-                )),
-                "pre_invoice_date": self._clean_value(extract_regex(
-                    r"Pr[ée]\s*-\s*Nota:\s*([\d/]+ - [\d:]+)", text
-                )),
-                "invoice_number": self._clean_value(extract_regex(r"NF:\s*([^\n]*)", text)),
-                "scheduled_date": self._clean_value(extract_regex(
-                    r"Data Programada:\s*([^\n]*)", text
-                )),
-                "condition": self._clean_value(extract_regex(r"Condição:\s*([^\n\r]*?)(?=[ \t]{2,}|\r?\n|$)", text)),
-                "operation": self._clean_value(extract_regex(r"Operação:\s*([^\n\r]*?)(?=[ \t]{2,}|\r?\n|$)", text)),
-                "origin": self._clean_value(extract_regex(
-                    r"Origem:[ \t]*([^\n\r]*?(?:(?:\r?\n[ \t]+)(?!Digitador:)[^\n\r]+?)*?)(?=[ \t]{2,}|\r?\n|$)",
-                    text,
-                )),
-                "typist": self._clean_value(extract_regex(r"Digitador:[ \t]*([^\n\r]*?)(?=[ \t]{2,}|\r?\n|$)", text)),
-                "salesperson": self._clean_value(extract_regex(r"Vendedor:[ \t]*([^\n\r]*?)(?=[ \t]{2,}|\r?\n|$)", text)),
-                "releaser": self._clean_value(extract_regex(
-                    r"Liberador:[ \t]*([^\n\r]*?(?:(?:\r?\n[ \t]+)(?!Vendedor:)(?!Volumes:)[^\n\r]+?)*?)(?=[ \t]{2,}|\r?\n|$)",
-                    text,
-                )),
-                "situation": self._clean_value(extract_regex(r"Situação:\s*([^\s]+)", text)),
-                "pending_payment": self._clean_value(extract_regex(
-                    r"Pendência:\s*([^\n\r]*?)(?=[ \t]{2,}|\r?\n|$)", text
-                )),
+                "typing_date": self._clean_value(
+                    extract_regex(
+                        r"Digita[çc][ãa]o:\s*([\d/]+ - [\d:]+)", text
+                    )
+                ),
+                "release_date": self._clean_value(
+                    extract_regex(
+                        r"Libera[çc][ãa]o:\s*([\d/]+ - [\d:]+)", text
+                    )
+                ),
+                "pre_invoice_date": self._clean_value(
+                    extract_regex(
+                        r"Pr[ée]\s*-\s*Nota:\s*([\d/]+ - [\d:]+)", text
+                    )
+                ),
+                "invoice_number": self._clean_value(
+                    extract_regex(r"NF:\s*([^\n]*)", text)
+                ),
+                "scheduled_date": self._clean_value(
+                    extract_regex(r"Data Programada:\s*([^\n]*)", text)
+                ),
+                "condition": self._clean_value(
+                    extract_regex(
+                        r"Condição:\s*([^\n\r]*?)(?=[ \t]{2,}|\r?\n|$)", text
+                    )
+                ),
+                "operation": self._clean_value(
+                    extract_regex(
+                        r"Operação:\s*([^\n\r]*?)(?=[ \t]{2,}|\r?\n|$)", text
+                    )
+                ),
+                "origin": self._clean_value(
+                    extract_regex(
+                        r"Origem:[ \t]*([^\n\r]*?(?:(?:\r?\n[ \t]+)"
+                        r"(?!Digitador:)[^\n\r]+?)*?)(?=[ \t]{2,}|\r?\n|$)",
+                        text,
+                    )
+                ),
+                "typist": self._clean_value(
+                    extract_regex(
+                        r"Digitador:[ \t]*([^\n\r]*?)(?=[ \t]{2,}|\r?\n|$)",
+                        text,
+                    )
+                ),
+                "salesperson": self._clean_value(
+                    extract_regex(
+                        r"Vendedor:[ \t]*([^\n\r]*?)(?=[ \t]{2,}|\r?\n|$)",
+                        text,
+                    )
+                ),
+                "releaser": self._clean_value(
+                    extract_regex(
+                        r"Liberador:[ \t]*([^\n\r]*?(?:(?:\r?\n[ \t]+)"
+                        r"(?!Vendedor:)(?!Volumes:)[^\n\r]+?)*?)"
+                        r"(?=[ \t]{2,}|\r?\n|$)",
+                        text,
+                    )
+                ),
+                "situation": self._clean_value(
+                    extract_regex(r"Situação:\s*([^\s]+)", text)
+                ),
+                "pending_payment": self._clean_value(
+                    extract_regex(
+                        r"Pendência:\s*([^\n\r]*?)(?=[ \t]{2,}|\r?\n|$)", text
+                    )
+                ),
                 "net_weight": extract_regex(
                     r"Peso Líquido:\s*([\d,.]+)", text
                 ),
@@ -487,31 +611,37 @@ class PDFProcessor(FileProcessor):
         Exemplo: 12345 PRODUTO TESTE 10,000
         """
         import re
+
         products = []
-        
-        # Padrão: Início da linha ou espaço, seguido por código numérico, 
-        # seguido por descrição (letras/espaços), seguido por quantidade (número com vírgula/ponto)
-        # Este padrão tenta capturar a linha de itens comum em relatórios.
-        # Ajustado para ser mais flexível com o que vem depois da quantidade.
-        pattern = r"(?m)^\s*(\d{4,10})\s+([A-Z0-9\s\.-]{10,60})\s+(\d+[,.]\d{2,3})"
-        
+
+        # Padrão: Início da linha ou espaço, seguido por código numérico,
+        # seguido por descrição (letras/espaços), seguido por quantidade
+        # (número com vírgula/ponto). Este padrão tenta capturar a linha de
+        # itens comum em relatórios. Ajustado para ser mais flexível com o
+        # que vem depois da quantidade.
+        pattern = (
+            r"(?m)^\s*(\d{4,10})\s+([A-Z0-9\s\.-]{10,60})\s+(\d+[,.]\d{2,3})"
+        )
+
         matches = re.finditer(pattern, text)
         for match in matches:
             code = match.group(1).strip()
             desc = match.group(2).strip()
             qty_str = match.group(3).strip().replace(",", ".")
-            
+
             try:
                 quantity = Decimal(qty_str)
                 products.append({
                     "product_code": code,
                     "description": desc,
                     "quantity": quantity,
-                    "price": Decimal("0.00"), # PDF as vezes não tem preço fácil de pegar
+                    "price": Decimal(
+                        "0.00"
+                    ),  # PDF as vezes não tem preço fácil de pegar
                 })
             except (InvalidOperation, ValueError):
                 continue
-                
+
         return products
 
 

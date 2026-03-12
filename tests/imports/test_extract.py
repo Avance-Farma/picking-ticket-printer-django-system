@@ -48,7 +48,7 @@ class ExcelExtractorTester:
 
         if (lbl in ("nº", "nr")) and "nº" in low and ":" in low:
             idx = s.find(":")
-            return s[idx + 1:].strip() if idx >= 0 else None
+            return s[idx + 1 :].strip() if idx >= 0 else None
 
         if (
             low.startswith(lbl)
@@ -58,7 +58,7 @@ class ExcelExtractorTester:
         ):
             idx = s.find(":")
             if 0 <= idx < len(s) - 1:
-                after = s[idx + 1:].strip()
+                after = s[idx + 1 :].strip()
                 if after:
                     return after
             for i in range(1, 21):

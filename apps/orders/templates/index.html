@@ -307,6 +307,16 @@
         </svg>
         Imprimir Selecionados
     </button>
+    <button id="btn-download-pdf" onclick="downloadSelectedAsPDF()" style="display:inline-flex;align-items:center;gap:.5rem;background:#f8fafc;color:#0f172a;
+                   border:0;border-radius:.75rem;font-size:.875rem;font-weight:600;
+                   padding:.5rem 1rem;cursor:pointer;transition:background .2s;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="7 10 12 15 17 10" />
+            <line x1="12" y1="15" x2="12" y2="3" />
+        </svg>
+        Baixar PDF
+    </button>
     <button onclick="deselectAll()" title="Desmarcar todos"
         style="background:transparent;border:0;color:#94a3b8;cursor:pointer;padding:.25rem;border-radius:.5rem">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -403,6 +413,10 @@
 
     #btn-print:hover {
         background: #16a34a !important;
+    }
+
+    #btn-download-pdf:hover {
+        background: #cbd5e1 !important;
     }
 </style>
 {% endblock %}
@@ -714,6 +728,95 @@
         } finally {
             btnPrint.disabled = false;
             btnPrint.textContent = "🖨 Imprimir Selecionados";
+            updateSelectionUI();
+        }
+    }
+
+    async function downloadSelectedAsPDF() {
+        const orders = getSelectedOrders();
+        if (orders.length === 0) { showToast("Selecione ao menos um pedido.", "error"); return; }
+
+        const btnPdf = document.getElementById("btn-download-pdf");
+        btnPdf.disabled = true;
+        btnPdf.innerHTML = "⏳ Gerando PDF…";
+
+        let processedIds = [];
+
+        try {
+            // 1. Gerar ZPL (mesma rota da expedição)
+            const resp = await fetch("/orders/api/v1/volumes/process/", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "X-CSRFToken": CSRF_TOKEN },
+                body: JSON.stringify({ orders }),
+            });
+            const data = await resp.json();
+
+            if (!resp.ok || !data.success) {
+                showToast("Erro ao processar: " + (data.error || "Desconhecido"), "error");
+                return;
+            }
+
+            if (data.errors?.length > 0) {
+                showToast("Atenção: " + data.errors.length + " pedido(s) não puderam ser verificados.", "warning");
+            }
+
+            processedIds = orders
+                .filter(o => !data.errors?.find(e => e.order_id === o.order_id))
+                .map(o => o.order_id);
+
+            processedIds.forEach(id => setOrderUI(id, "in_progress"));
+
+            // 2. Chamar o conversor no backend
+            showToast("Convertendo etiquetas para PDF, aguarde…", "info");
+            const pdfResp = await fetch("/orders/api/v1/volumes/to-pdf/", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "X-CSRFToken": CSRF_TOKEN },
+                body: JSON.stringify({ zpl_commands: data.zpl_commands })
+            });
+
+            if (!pdfResp.ok) {
+                throw new Error("Erro do servidor ao gerar PDF");
+            }
+
+            // 3. Fazer o download via blob nativo do browser
+            const blob = await pdfResp.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.style.display = "none";
+            a.href = url;
+            a.download = "etiquetas.pdf";
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+
+            // 4. Concluir a expedição (marcar como shipped)
+            await notifyPrintResult(processedIds, true);
+            processedIds.forEach(id => setOrderUI(id, "shipped"));
+            processedIds = [];
+            deselectAll();
+            refreshCounters();
+            showToast("PDF gerado com sucesso!", "success");
+
+        } catch (err) {
+            console.error("Erro na geração de PDF:", err);
+            if (processedIds.length > 0) {
+                await notifyPrintResult(processedIds, false).catch(() => { });
+                processedIds.forEach(id => setOrderUI(id, "failed"));
+                showToast("Erro ao gerar PDF. Pedidos marcados como Falha — tente novamente.", "error");
+            } else {
+                showToast("Erro de rede ao processar pedidos.", "error");
+            }
+        } finally {
+            btnPdf.disabled = false;
+            btnPdf.innerHTML = `
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="7 10 12 15 17 10" />
+                    <line x1="12" y1="15" x2="12" y2="3" />
+                </svg>
+                Baixar PDF
+            `;
             updateSelectionUI();
         }
     }

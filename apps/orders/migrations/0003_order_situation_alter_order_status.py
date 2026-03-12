@@ -4,20 +4,29 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('orders', '0002_order_condition_order_delivery_order_invoice_number_and_more'),
+        (
+            "orders",
+            "0002_order_condition_order_delivery_order_invoice_number_and_more",
+        ),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='order',
-            name='situation',
-            field=models.CharField(blank=True, max_length=100, verbose_name='Situação'),
+            model_name="order",
+            name="situation",
+            field=models.CharField(
+                blank=True, max_length=100, verbose_name="Situação"
+            ),
         ),
         migrations.AlterField(
-            model_name='order',
-            name='status',
-            field=models.CharField(blank=True, default='pending', max_length=100, verbose_name='Status'),
+            model_name="order",
+            name="status",
+            field=models.CharField(
+                blank=True,
+                default="pending",
+                max_length=100,
+                verbose_name="Status",
+            ),
         ),
     ]

@@ -17,13 +17,9 @@ class AddressAdmin(ModelAdmin):
     )
 
     list_filter = (
-        "street",
-        "number",
-        "complement",
-        "district",
-        "city",
         "state",
-        "zip_code",
+        "city",
+        "district",
     )
 
     search_fields = (

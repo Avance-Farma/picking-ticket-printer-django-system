@@ -4,25 +4,34 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
-    dependencies = [
-    ]
+    dependencies = []
 
     operations = [
         migrations.CreateModel(
-            name='ImportBatch',
+            name="ImportBatch",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('total_files', models.IntegerField(default=0)),
-                ('processed_files', models.IntegerField(default=0)),
-                ('status', models.CharField(default='processing', max_length=20)),
-                ('errors', models.TextField(blank=True)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("total_files", models.IntegerField(default=0)),
+                ("processed_files", models.IntegerField(default=0)),
+                (
+                    "status",
+                    models.CharField(default="processing", max_length=20),
+                ),
+                ("errors", models.TextField(blank=True)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
             ],
             options={
-                'db_table': 'import_batches',
+                "db_table": "import_batches",
             },
         ),
     ]

@@ -5,46 +5,106 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
     dependencies = [
-        ('customers', '0001_add_total_volumes_and_confirmed_status'),
-        ('products', '0001_add_total_volumes_and_confirmed_status'),
+        ("customers", "0001_add_total_volumes_and_confirmed_status"),
+        ("products", "0001_add_total_volumes_and_confirmed_status"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='Order',
+            name="Order",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('picking', models.CharField(max_length=20)),
-                ('order_number', models.CharField(max_length=30)),
-                ('order_route', models.CharField(blank=True, max_length=50)),
-                ('status', models.CharField(choices=[('pending', 'Pendente'), ('confirmed', 'Confirmado'), ('in_progress', 'Em progresso'), ('shipped', 'Expedido')], default='pending', max_length=20)),
-                ('total_volumes', models.PositiveIntegerField(blank=True, default=None, help_text='Quantidade de volumes confirmada para impressão (persiste para relatórios).', null=True, verbose_name='Total de Volumes')),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('customer', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='customers.customer')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("picking", models.CharField(max_length=20)),
+                ("order_number", models.CharField(max_length=30)),
+                ("order_route", models.CharField(blank=True, max_length=50)),
+                (
+                    "status",
+                    models.CharField(
+                        choices=[
+                            ("pending", "Pendente"),
+                            ("confirmed", "Confirmado"),
+                            ("in_progress", "Em progresso"),
+                            ("shipped", "Expedido"),
+                        ],
+                        default="pending",
+                        max_length=20,
+                    ),
+                ),
+                (
+                    "total_volumes",
+                    models.PositiveIntegerField(
+                        blank=True,
+                        default=None,
+                        help_text="Quantidade de volumes confirmada para impressão (persiste para relatórios).",
+                        null=True,
+                        verbose_name="Total de Volumes",
+                    ),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                (
+                    "customer",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="customers.customer",
+                    ),
+                ),
             ],
             options={
-                'db_table': 'orders',
-                'unique_together': {('picking', 'order_number')},
+                "db_table": "orders",
+                "unique_together": {("picking", "order_number")},
             },
         ),
         migrations.CreateModel(
-            name='OrderItem',
+            name="OrderItem",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('quantity', models.DecimalField(decimal_places=3, default=0, max_digits=18)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('order', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='items', to='orders.order')),
-                ('product', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='products.product')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "quantity",
+                    models.DecimalField(
+                        decimal_places=3, default=0, max_digits=18
+                    ),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                (
+                    "order",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="items",
+                        to="orders.order",
+                    ),
+                ),
+                (
+                    "product",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="products.product",
+                    ),
+                ),
             ],
             options={
-                'db_table': 'order_items',
-                'unique_together': {('order', 'product')},
+                "db_table": "order_items",
+                "unique_together": {("order", "product")},
             },
         ),
     ]

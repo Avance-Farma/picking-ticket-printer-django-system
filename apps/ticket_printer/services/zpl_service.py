@@ -37,35 +37,67 @@ class ZPLGenerator:
         )
         district = address.district if address else ""
         city_state_zip = (
-            f"{address.city or ''}/ {address.state or ''} - {address.zip_code or ''}"
+            f"{address.city or ''}/ "
+            f"{address.state or ''} - {address.zip_code or ''}"
             if address
             else ""
         )
 
+        city = (address.city or "").strip().upper() if address else ""
+        is_rj = city == "RIO DE JANEIRO"
+
+        city_state_zip = (
+            f"{address.city or ''} / "
+            f"{address.state or ''} - {address.zip_code or ''}"
+            if address
+            else ""
+        ).upper()
+
+        if is_rj:
+            district_zpl = (
+                "^FO20,190^GB770,50,50^FS\n"
+                "            ^A0N,40,30\n"
+                f"            ^FO30,195^FR^FB750,1,0,L,0^FD{district}^FS"
+            )
+            city_zpl = (
+                "^A0N,30,25\n"
+                f"            ^FO30,250^FB750,1,0,L,0^FD{city_state_zip}^FS"
+            )
+        else:
+            district_zpl = (
+                "^A0N,40,30\n"
+                f"            ^FO30,195^FB750,1,0,L,0^FD{district}^FS"
+            )
+            city_zpl = (
+                "^FO20,240^GB770,45,45^FS\n"
+                "            ^A0N,30,25\n"
+                f"            ^FO30,248^FR^FB750,1,0,L,0^FD{city_state_zip}^FS"
+            )
+
         zpl = f"""^XA
             ^CI28
 
-            ^CF0,60,60
-            ^FO40,25^FDPicking: {order.picking}^FS
+            ^FO20,10^GB770,55,55^FS
+            ^A0N,45,35
+            ^FO30,15^FR^FD{order.picking}^FS
+            ^A0N,35,30
+            ^FO450,20^FR^FB330,1,0,R,0^FD{order.order_route}^FS
 
-            ^FO40,85^GB720,3,3^FS
+            ^A0N,30,25
+            ^FO30,75^FB750,2,0,L,0^FD{order.customer.name if order.customer else ""}^FS
 
-            ^CF0,35,35
-            ^FO40,110^FD{order.customer.name if order.customer else ""}^FS
+            ^A0N,25,20
+            ^FO30,135^FB750,2,0,L,0^FD{street_num}^FS
 
-            ^CF0,35,35
-            ^FO40,160^FD{street_num}^FS
+            {district_zpl}
 
-            ^CF0,60,60
-            ^FO40,200^FD{district}^FS
+            {city_zpl}
 
-            ^CF0,35,35
-            ^FO40,270^FD{city_state_zip}^FS
+            ^FO20,300^GB770,3,3^FS
 
-            ^FO40,325^GB720,3,3^FS
-
-            ^CF0,60,60
-            ^FO0,350^FB800,1,0,C^FDVol: {volume_num}/{total_volumes}^FS
+            ^FO20,315^GB770,60,60^FS
+            ^A0N,45,40
+            ^FO0,323^FR^FB812,1,0,C^FD{volume_num}/{total_volumes}^FS
 
         ^XZ"""  # noqa: E501
         return zpl

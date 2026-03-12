@@ -4,15 +4,16 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('customers', '0001_add_total_volumes_and_confirmed_status'),
+        ("customers", "0001_add_total_volumes_and_confirmed_status"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='customer',
-            name='phone',
-            field=models.CharField(blank=True, max_length=50, null=True, verbose_name='Telefone'),
+            model_name="customer",
+            name="phone",
+            field=models.CharField(
+                blank=True, max_length=50, null=True, verbose_name="Telefone"
+            ),
         ),
     ]

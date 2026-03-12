@@ -48,7 +48,9 @@ class ExcelReader:
             "picking": ExcelReader._normalize_digits(
                 ExcelReader._find_after(header_df, "Picking") or ""
             ),
-            "route": (ExcelReader._find_after(header_df, "Rota") or "").strip(),  # noqa: E501
+            "route": (
+                ExcelReader._find_after(header_df, "Rota") or ""
+            ).strip(),  # noqa: E501
             "customer_code": (
                 ExcelReader._find_after(header_df, "Cód. Cliente")
                 or ExcelReader._find_after(header_df, "Cod. Cliente")
@@ -172,7 +174,7 @@ class ExcelReader:
     def _extract_after_colon(s: str) -> str | None:
         idx = s.find(":")
         if 0 <= idx < len(s) - 1:
-            after = s[idx + 1:].strip()
+            after = s[idx + 1 :].strip()
             if after:
                 return after
         return None

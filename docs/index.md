@@ -1,9 +1,12 @@
-# Bem-vindo ao Sistema Picking Ticket Printer
+# Documentação Técnica e Manual: Sistema de Romaneios
 
-Este sistema fornece orquestração avançada para impressão térmica de etiquetas usando Zebra Programming Language (ZPL) de forma integrada com a impressora do usuário.
+Bem-vindo à documentação oficial do **Picking Ticket Printer System**!
 
-## Módulos de Documentação
+Aqui você encontrará todas as informações necessárias sobre os módulos, a orquestração em background e os manuais de utilização.
 
-- **[Arquitetura](architecture.md)**: Visão de alto nível.
-- **[Componentes](components/apps.md)**: Detalhes das apps e serviços.
-- **[Guias](guides/development.md)**: Manuais práticos.
+## Índice Rápido
+- **Conheça o Sistema**: [Arquitetura](architecture.md)
+- **Manual Diário**: [Guia do Operador](manual/user_manual.md)
+- **Para Desenvolvedores**: [Como começar](guides/development.md)
+
+Explore as abas acima para navegar pelas seções!

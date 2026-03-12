@@ -4,15 +4,16 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('products', '0002_remove_product_sku_product_sku_code'),
+        ("products", "0002_remove_product_sku_product_sku_code"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='product',
-            name='sku_code',
-            field=models.CharField(max_length=50, unique=True, verbose_name='Código SKU'),
+            model_name="product",
+            name="sku_code",
+            field=models.CharField(
+                max_length=50, unique=True, verbose_name="Código SKU"
+            ),
         ),
     ]

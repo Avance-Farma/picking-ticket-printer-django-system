@@ -76,7 +76,8 @@ class TestBulkProcessVolumesAPI:
         assert len(response.data["zpl_commands"]) == 3
 
         order1.refresh_from_db()
-        # process_and_print now sets in_progress; shipped is confirmed client-side
+        # process_and_print now sets in_progress;
+        # shipped is confirmed client-side
         assert order1.status == "in_progress"
         assert order1.total_volumes == 2
 

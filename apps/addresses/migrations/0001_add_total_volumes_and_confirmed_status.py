@@ -4,31 +4,37 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
-    dependencies = [
-    ]
+    dependencies = []
 
     operations = [
         migrations.CreateModel(
-            name='Address',
+            name="Address",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('street', models.CharField(max_length=100)),
-                ('number', models.CharField(blank=True, max_length=10)),
-                ('complement', models.CharField(blank=True, max_length=100)),
-                ('district', models.CharField(max_length=100)),
-                ('city', models.CharField(max_length=100)),
-                ('state', models.CharField(max_length=2)),
-                ('zip_code', models.CharField(max_length=8)),
-                ('country', models.CharField(max_length=100)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("street", models.CharField(max_length=100)),
+                ("number", models.CharField(blank=True, max_length=10)),
+                ("complement", models.CharField(blank=True, max_length=100)),
+                ("district", models.CharField(max_length=100)),
+                ("city", models.CharField(max_length=100)),
+                ("state", models.CharField(max_length=2)),
+                ("zip_code", models.CharField(max_length=8)),
+                ("country", models.CharField(max_length=100)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
             ],
             options={
-                'verbose_name': 'Endereço',
-                'verbose_name_plural': 'Endereços',
+                "verbose_name": "Endereço",
+                "verbose_name_plural": "Endereços",
             },
         ),
     ]

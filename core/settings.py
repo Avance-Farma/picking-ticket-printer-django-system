@@ -14,6 +14,8 @@ from pathlib import Path
 
 import environ
 import sentry_sdk
+from django.urls import reverse_lazy
+from django.utils.translation import gettext_lazy as _
 from sentry_sdk.integrations.celery import CeleryIntegration
 from sentry_sdk.integrations.django import DjangoIntegration
 
@@ -150,9 +152,9 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/6.0/topics/i18n/
 
-LANGUAGE_CODE = "en-us"
+LANGUAGE_CODE = "pt-br"
 
-TIME_ZONE = "UTC"
+TIME_ZONE = "America/Sao_Paulo"
 
 USE_I18N = True
 
@@ -211,3 +213,102 @@ if not DEBUG:
     SECURE_HSTS_SECONDS = env.int("SECURE_HSTS_SECONDS", default=31536000)
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
+
+
+# ─── Unfold Theme Configuration ──────────────
+UNFOLD = {
+    "SITE_TITLE": "Admin de Romaneios",
+    "SITE_HEADER": "Sistema de Romaneios",
+    "SITE_URL": "/",
+    "SITE_SYMBOL": "local_shipping",  # Material symbol
+    "DASHBOARD_CALLBACK": "core.admin_dashboard.dashboard_callback",
+    "SIDEBAR": {
+        "show_search": True,
+        "show_all_applications": True,
+        "navigation": [
+            {
+                "title": _("Painel de Controle"),
+                "separator": True,
+                "items": [
+                    {
+                        "title": _("Início"),
+                        "icon": "dashboard",
+                        "link": reverse_lazy("admin:index"),
+                    },
+                ],
+            },
+            {
+                "title": _("Logística"),
+                "separator": True,
+                "items": [
+                    {
+                        "title": _("Pedidos"),
+                        "icon": "inventory_2",
+                        "link": reverse_lazy("admin:orders_order_changelist"),
+                    },
+                    {
+                        "title": _("Itens de Pedido"),
+                        "icon": "receipt_long",
+                        "link": reverse_lazy(
+                            "admin:orders_orderitem_changelist"
+                        ),
+                    },
+                ],
+            },
+            {
+                "title": _("Catálogo"),
+                "separator": True,
+                "items": [
+                    {
+                        "title": _("Produtos"),
+                        "icon": "category",
+                        "link": reverse_lazy(
+                            "admin:products_product_changelist"
+                        ),
+                    },
+                ],
+            },
+            {
+                "title": _("Diretório"),
+                "separator": True,
+                "items": [
+                    {
+                        "title": _("Clientes"),
+                        "icon": "people",
+                        "link": reverse_lazy(
+                            "admin:customers_customer_changelist"
+                        ),
+                    },
+                    {
+                        "title": _("Endereços"),
+                        "icon": "location_on",
+                        "link": reverse_lazy(
+                            "admin:addresses_address_changelist"
+                        ),
+                    },
+                ],
+            },
+            {
+                "title": _("Documentação"),
+                "separator": True,
+                "items": [
+                    {
+                        "title": _("Terminal da API (Swagger)"),
+                        "icon": "api",
+                        "link": reverse_lazy("swagger-ui"),
+                    },
+                    {
+                        "title": _("Docs do Sistema (MkDocs)"),
+                        "icon": "menu_book",
+                        "link": "/docs/",
+                    },
+                    {
+                        "title": _("Manual de Utilização"),
+                        "icon": "import_contacts",
+                        "link": "/docs/manual/user_manual/",
+                    },
+                ],
+            },
+        ],
+    },
+}

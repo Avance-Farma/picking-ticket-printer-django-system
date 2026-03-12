@@ -78,7 +78,10 @@ class Order(models.Model):
         blank=True,
         default=None,
         verbose_name="Total de Volumes",
-        help_text="Quantidade de volumes confirmada para impressão (persiste para relatórios).",
+        help_text=(
+            "Quantidade de volumes confirmada para "
+            "impressão (persiste para relatórios)."
+        ),
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

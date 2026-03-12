@@ -1,0 +1,190 @@
+{% extends 'admin/index.html' %}
+
+{% load i18n unfold %}
+
+{% block content %}
+    {% if kpi %}
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
+            {% for item in kpi %}
+                <div class="bg-white dark:bg-gray-800 rounded-md shadow p-6 border border-gray-200 dark:border-gray-700">
+                    <h3 class="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-1">{{ item.title }}</h3>
+                    <p class="text-3xl font-bold text-gray-900 dark:text-white mb-2">{{ item.metric }}</p>
+                    <p class="text-sm text-gray-400 dark:text-gray-500">{{ item.footer }}</p>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <!-- Alerts Section -->
+    {% if alerts %}
+        <div class="mb-8 space-y-3">
+            {% for alert in alerts %}
+                <div class="p-4 rounded-md shadow-sm border 
+                    {% if alert.type == 'warning' %}bg-orange-50 border-orange-200 text-orange-800 dark:bg-orange-900/20 dark:border-orange-800 dark:text-orange-200
+                    {% elif alert.type == 'info' %}bg-blue-50 border-blue-200 text-blue-800 dark:bg-blue-900/20 dark:border-blue-800 dark:text-blue-200
+                    {% else %}bg-green-50 border-green-200 text-green-800 dark:bg-green-900/20 dark:border-green-800 dark:text-green-200{% endif %}">
+                    <div class="flex items-center">
+                        <span class="material-symbols-outlined mr-2">
+                            {% if alert.type == 'warning' %}warning{% elif alert.type == 'info' %}info{% else %}check_circle{% endif %}
+                        </span>
+                        <p class="text-sm font-medium">{{ alert.message }}</p>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <!-- Chart Section -->
+    <div class="bg-white dark:bg-gray-800 rounded-md shadow p-6 border border-gray-200 dark:border-gray-700 mb-8">
+        <h2 class="text-lg font-semibold mb-4 text-gray-800 dark:text-gray-200">Pedidos nos Últimos 7 Dias</h2>
+        <div class="relative h-64">
+            <canvas id="ordersChart"></canvas>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+        
+        <!-- Left Column: Actions & Progress -->
+        <div class="lg:col-span-1 space-y-8">
+            
+            <!-- Quick Search -->
+            <div class="bg-white dark:bg-gray-800 rounded-md shadow p-6 border border-gray-200 dark:border-gray-700">
+                <h2 class="text-lg font-semibold mb-4 text-gray-800 dark:text-gray-200">Busca Rápida de Pedido</h2>
+                <form action="{% url 'admin:orders_order_changelist' %}" method="get" class="flex gap-2">
+                    <input type="text" name="q" placeholder="Nº do Pedido ou Rota..." class="flex-1 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500">
+                    <button type="submit" class="text-white bg-primary-600 hover:bg-primary-700 focus:ring-4 focus:outline-none focus:ring-primary-300 font-medium rounded-md text-sm px-4 py-2.5 text-center dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800">
+                        Buscar
+                    </button>
+                </form>
+            </div>
+
+            <!-- Progress Bar -->
+            <div class="bg-white dark:bg-gray-800 rounded-md shadow p-6 border border-gray-200 dark:border-gray-700">
+                <h2 class="text-lg font-semibold mb-2 text-gray-800 dark:text-gray-200">Meta Diária de Picking</h2>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Progresso de separação dos pedidos de hoje.</p>
+                <div class="flex justify-between mb-1">
+                    <span class="text-sm font-medium text-primary-700 dark:text-primary-400">{{ progress_data.picked }} processados</span>
+                    <span class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ progress_data.total }} totais</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
+                    <div class="bg-primary-600 h-2.5 rounded-full" style="width: {{ progress_data.percentage }}%"></div>
+                </div>
+                <p class="text-right text-xs mt-1 font-semibold text-gray-500 dark:text-gray-400">{{ progress_data.percentage }}% concluído</p>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="bg-white dark:bg-gray-800 rounded-md shadow p-6 border border-gray-200 dark:border-gray-700 relative overflow-hidden">
+                <h2 class="text-lg font-semibold mb-4 text-gray-800 dark:text-gray-200">Ações Rápidas</h2>
+                <div class="flex flex-col gap-3 relative z-10">
+                    <a href="{% url 'admin:orders_order_changelist' %}?status__exact=pending" class="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
+                        <span class="material-symbols-outlined mr-2 text-primary-500">list_alt</span>
+                        Ver Fila de Separação
+                    </a>
+                    <a href="{% url 'admin:products_product_changelist' %}" class="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
+                        <span class="material-symbols-outlined mr-2 text-primary-500">category</span>
+                        Atualizar Catálogo
+                    </a>
+                </div>
+                <!-- Decorative Icon -->
+                <span class="material-symbols-outlined absolute -bottom-4 -right-4 text-8xl text-gray-100 dark:text-gray-800/50 pointer-events-none select-none">flash_on</span>
+            </div>
+            
+        </div>
+
+        <!-- Right Column: Recent Activity -->
+        <div class="lg:col-span-2">
+            <div class="bg-white dark:bg-gray-800 rounded-md shadow border border-gray-200 dark:border-gray-700 h-full">
+                <div class="p-6 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+                    <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-200">Últimos Pedidos Recebidos</h2>
+                    <a href="{% url 'admin:orders_order_changelist' %}" class="text-sm text-primary-600 hover:text-primary-700 hover:underline dark:text-primary-400">Ver todos</a>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                        <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
+                            <tr>
+                                <th scope="col" class="px-6 py-3">Pedido</th>
+                                <th scope="col" class="px-6 py-3">Cliente</th>
+                                <th scope="col" class="px-6 py-3">Status</th>
+                                <th scope="col" class="px-6 py-3">Tempo</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for order in recent_orders %}
+                            <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 cursor-pointer" onclick="window.location='{% url 'admin:orders_order_change' order.id %}';">
+                                <td class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
+                                    {{ order.order_number }}
+                                </td>
+                                <td class="px-6 py-4 truncate max-w-xs">
+                                    {{ order.customer.name }}
+                                </td>
+                                <td class="px-6 py-4">
+                                    <span class="px-2 py-1 text-xs font-medium rounded-full 
+                                        {% if order.status == 'pending' %}bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300
+                                        {% elif order.status == 'shipped' %}bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300
+                                        {% else %}bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300{% endif %}">
+                                        {{ order.get_status_display }}
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4">
+                                    {{ order.created_at|timesince }} atrás
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="px-6 py-8 text-center text-gray-500 font-medium">Nenhum pedido recente encontrado.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    {{ block.super }}
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var ctx = document.getElementById('ordersChart').getContext('2d');
+            var isDarkMode = document.documentElement.classList.contains('dark') || document.body.classList.contains('dark');
+            var textColor = isDarkMode ? '#9ca3af' : '#4b5563';
+            var gridColor = isDarkMode ? '#374151' : '#e5e7eb';
+            
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: {{ chart_labels|safe }},
+                    datasets: [{
+                        label: 'Pedidos',
+                        data: {{ chart_data|safe }},
+                        borderColor: '#0284c7', // Using a default Tailwind blueish primary
+                        backgroundColor: 'rgba(2, 132, 199, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { color: textColor, stepSize: 1 },
+                            grid: { color: gridColor }
+                        },
+                        x: {
+                            ticks: { color: textColor },
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+{% endblock %}

@@ -74,43 +74,50 @@ class OrdersListView(View):
             "status_filter": status_filter,
             "sort_field": sort_field,
             "sort_dir": sort_dir,
-            # Pills de filtro por status — (label, value, active_css, inactive_css)
+            # Pills de filtro por status
+            # (label, value, active_css, inactive_css)
             "status_pills": [
                 (
                     "Todos",
                     "",
                     "bg-slate-800 text-white border-slate-800",
-                    "bg-white text-slate-600 border-slate-300 hover:border-slate-500",
+                    "bg-white text-slate-600 border-slate-300 "
+                    "hover:border-slate-500",
                 ),
                 (
                     S.PENDING.label,
                     S.PENDING.value,
                     "bg-amber-500 text-white border-amber-500",
-                    "bg-white text-amber-700 border-amber-300 hover:border-amber-500",
+                    "bg-white text-amber-700 border-amber-300 "
+                    "hover:border-amber-500",
                 ),
                 (
                     S.CONFIRMED.label,
                     S.CONFIRMED.value,
                     "bg-green-600 text-white border-green-600",
-                    "bg-white text-green-700 border-green-300 hover:border-green-500",
+                    "bg-white text-green-700 border-green-300 "
+                    "hover:border-green-500",
                 ),
                 (
                     S.IN_PROGRESS.label,
                     S.IN_PROGRESS.value,
                     "bg-purple-600 text-white border-purple-600",
-                    "bg-white text-purple-700 border-purple-300 hover:border-purple-500",
+                    "bg-white text-purple-700 border-purple-300 "
+                    "hover:border-purple-500",
                 ),
                 (
                     S.SHIPPED.label,
                     S.SHIPPED.value,
                     "bg-blue-600 text-white border-blue-600",
-                    "bg-white text-blue-700 border-blue-300 hover:border-blue-500",
+                    "bg-white text-blue-700 border-blue-300 "
+                    "hover:border-blue-500",
                 ),
                 (
                     S.FAILED.label,
                     S.FAILED.value,
                     "bg-red-600 text-white border-red-600",
-                    "bg-white text-red-700 border-red-300 hover:border-red-500",
+                    "bg-white text-red-700 border-red-300 "
+                    "hover:border-red-500",
                 ),
             ],
             # Colunas ordenáveis da tabela
