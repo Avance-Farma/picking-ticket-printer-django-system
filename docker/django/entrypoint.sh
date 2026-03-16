@@ -19,7 +19,7 @@ echo "PostgreSQL is available!"
 
 # ─── Apply database migrations ───────────────────────────────────────────────
 echo "Running migrations..."
-python manage.py migrate --noinput
+python manage.py migrate --fake-initial --noinput
 
 # ─── Collect static files ────────────────────────────────────────────────────
 # Static files are always collected so Nginx can pick them up via volume
