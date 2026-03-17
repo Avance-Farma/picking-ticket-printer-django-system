@@ -1,16 +1,15 @@
 from django.contrib import admin
+from unfold.admin import ModelAdmin
 
 from .models import Delivery
 
 
 # Register your models here.
-@admin.register(Delivery)
-class DeliveryAdmin(admin.ModelAdmin):
+class DeliveryAdmin(ModelAdmin):
     list_display = (
-        "carrier",
-        "delivery",
         "route",
         "manifest",
+        "carrier",
         "vehicle",
         "driver",
         "helper",
@@ -18,10 +17,9 @@ class DeliveryAdmin(admin.ModelAdmin):
         "updated_at",
     )
     list_filter = (
-        "carrier",
-        "delivery",
         "route",
         "manifest",
+        "carrier",
         "vehicle",
         "driver",
         "helper",
@@ -29,10 +27,9 @@ class DeliveryAdmin(admin.ModelAdmin):
         "updated_at",
     )
     search_fields = (
-        "carrier",
-        "delivery",
         "route",
         "manifest",
+        "carrier",
         "vehicle",
         "driver",
         "helper",
@@ -40,3 +37,6 @@ class DeliveryAdmin(admin.ModelAdmin):
     ordering = (
         "-created_at",
     )
+
+
+admin.site.register(Delivery, DeliveryAdmin)

@@ -14,11 +14,14 @@ class Order(models.Model):
 
     picking = models.CharField(max_length=20)
     order_number = models.CharField(max_length=30)
-    order_route = models.CharField(max_length=50, blank=True)
     customer = models.ForeignKey(Customer, on_delete=models.CASCADE)
     delivery = models.ForeignKey(
         "deliveries.Delivery", on_delete=models.SET_NULL, null=True, blank=True
     )
+
+    @property
+    def order_route(self):
+        return self.delivery.route if self.delivery else ""
 
     typing_date = models.DateTimeField(
         verbose_name="Digitação", null=True, blank=True
@@ -91,7 +94,7 @@ class Order(models.Model):
         unique_together = [("picking", "order_number")]
 
     def __str__(self):
-        return f"Order {self.order_number} - {self.customer.name}"
+        return f"{self.order_number}"
 
     @property
     def total_price(self):

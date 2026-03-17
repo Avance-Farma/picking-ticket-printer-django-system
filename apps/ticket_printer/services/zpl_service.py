@@ -81,7 +81,7 @@ class ZPLGenerator:
             ^A0N,45,35
             ^FO30,15^FR^FD{order.picking}^FS
             ^A0N,35,30
-            ^FO450,20^FR^FB330,1,0,R,0^FD{order.order_route}^FS
+            ^FO450,20^FR^FB330,1,0,R,0^FD{order.delivery.route if order.delivery else ""}^FS
 
             ^A0N,30,25
             ^FO30,75^FB750,2,0,L,0^FD{order.customer.name if order.customer else ""}^FS

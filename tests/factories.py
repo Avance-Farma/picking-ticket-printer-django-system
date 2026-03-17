@@ -2,8 +2,16 @@ import factory
 
 from apps.addresses.models import Address
 from apps.customers.models import Customer
+from apps.deliveries.models import Delivery
 from apps.orders.models import Order, OrderItem
 from apps.products.models import Product
+
+
+class DeliveryFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = Delivery
+
+    route = factory.Faker("city")
 
 
 class AddressFactory(factory.django.DjangoModelFactory):
@@ -47,6 +55,7 @@ class OrderFactory(factory.django.DjangoModelFactory):
     order_number = factory.Sequence(lambda n: f"ORD-{n:04d}")
     picking = factory.Sequence(lambda n: f"PCK-{n:04d}")
     customer = factory.SubFactory(CustomerFactory)
+    delivery = factory.SubFactory(DeliveryFactory)
     status = "pending"
 
 

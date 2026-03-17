@@ -16,7 +16,6 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('carrier', models.CharField(blank=True, max_length=255, verbose_name='Transportadora')),
-                ('delivery', models.CharField(blank=True, max_length=255, verbose_name='Entrega')),
                 ('route', models.CharField(blank=True, max_length=255, verbose_name='Rota')),
                 ('manifest', models.CharField(blank=True, max_length=255, verbose_name='Romaneio')),
                 ('vehicle', models.CharField(blank=True, max_length=255, verbose_name='Veículo')),

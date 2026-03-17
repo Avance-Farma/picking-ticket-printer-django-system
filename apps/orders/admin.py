@@ -17,7 +17,7 @@ class OrderAdmin(ModelAdmin):
     list_display = (
         "picking",
         "order_number",
-        "order_route",
+        "delivery__route",
         "customer__name",
         "status",
         "created_at",
@@ -26,13 +26,13 @@ class OrderAdmin(ModelAdmin):
     search_fields = (
         "picking",
         "order_number",
-        "order_route",
+        "delivery__route",
         "customer__name",
     )
     list_filter = (
         "status",
         "created_at",
-        "order_route",
+        "delivery__route",
         "picking",
     )
 
@@ -89,16 +89,12 @@ class OrderItemAdmin(ModelAdmin):
         "updated_at",
     )
     search_fields = (
-        "order",
+        "order__order_number",
+        "order__picking",
         "product__description",
-        "quantity",
-        "created_at",
-        "updated_at",
+        "product__sku_code",
     )
     list_filter = (
-        "order",
-        "product__description",
-        "quantity",
         "created_at",
         "updated_at",
     )

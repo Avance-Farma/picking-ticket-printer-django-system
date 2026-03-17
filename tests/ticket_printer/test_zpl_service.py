@@ -9,7 +9,7 @@ from tests.factories import OrderFactory
 class TestZPLGenerator:
     def test_generate_label(self):
         # Arrange — usa o model Order refatorado com related Customer + Address
-        order = OrderFactory(picking="PCK-123", order_route="RT-01")
+        order = OrderFactory(picking="PCK-123", delivery__route="RT-01")
         # Atualiza o endereço do cliente para valores conhecidos
         addr = order.customer.address
         addr.street = "Rua ABC"
@@ -42,7 +42,7 @@ class TestZPLGenerator:
 
     def test_generate_label_rio_de_janeiro(self):
         # Arrange
-        order = OrderFactory(picking="PCK-999", order_route="RT-02")
+        order = OrderFactory(picking="PCK-999", delivery__route="RT-02")
         addr = order.customer.address
         addr.street = "Av Brasil"
         addr.number = "100"

@@ -25,7 +25,7 @@ def _parse_date(date_str: str | None) -> datetime | None:
         if 1.0 < serial < 2958466.0:
             import xlrd
 
-            dt = xlrd.xldate_as_datetime(serial, 0)  # datemode=0 (1900-based)
+            dt = xlrd.xldate_as_datetime(serial, 0)
             return make_aware(dt)
     except (ValueError, OverflowError):
         pass
@@ -101,25 +101,44 @@ class DatabaseImporter:
 
             # Handle delivery (thread-safe update_or_create)
             delivery = None
-            if order_data.get("manifest") or order_data.get("carrier"):
-                delivery, _ = Delivery.objects.update_or_create(
-                    manifest=order_data.get("manifest", ""),
-                    carrier=order_data.get("carrier", ""),
-                    defaults={
-                        "delivery": order_data.get("delivery", ""),
-                        "route": order_data.get("route", ""),
-                        "vehicle": order_data.get("vehicle", ""),
-                        "driver": order_data.get("driver", ""),
-                        "helper": order_data.get("helper", ""),
-                    },
-                )
+            manifest = order_data.get("manifest", "")
+            carrier = order_data.get("carrier", "")
+            route = order_data.get("route", "")
+
+            if manifest or carrier or route:
+                # Use manifest/carrier if available,
+                # otherwise use route as a fallback key
+                # if we want to ensure uniqueness of "routes without manifest"
+                # For now, if no manifest/carrier, we just create/get by route.
+                if manifest or carrier:
+                    delivery, _ = Delivery.objects.update_or_create(
+                        manifest=manifest,
+                        carrier=carrier,
+                        defaults={
+                            "delivery": order_data.get("delivery", ""),
+                            "route": route,
+                            "vehicle": order_data.get("vehicle", ""),
+                            "driver": order_data.get("driver", ""),
+                            "helper": order_data.get("helper", ""),
+                        },
+                    )
+                else:
+                    # Search by route if manifest/carrier are empty
+                    delivery, _ = Delivery.objects.update_or_create(
+                        route=route,
+                        defaults={
+                            "delivery": order_data.get("delivery", ""),
+                            "vehicle": order_data.get("vehicle", ""),
+                            "driver": order_data.get("driver", ""),
+                            "helper": order_data.get("helper", ""),
+                        },
+                    )
 
             # Create or update Order (thread-safe update_or_create)
             order, _ = Order.objects.update_or_create(
                 order_number=order_number,
                 picking=picking,
                 defaults={
-                    "order_route": order_data.get("route", ""),
                     "customer": customer,
                     "delivery": delivery,
                     "total_volumes": order_data.get("total_volumes", None),

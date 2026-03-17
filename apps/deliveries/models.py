@@ -5,9 +5,6 @@ class Delivery(models.Model):
     carrier = models.CharField(
         max_length=255, verbose_name="Transportadora", blank=True
     )
-    delivery = models.CharField(
-        max_length=255, verbose_name="Entrega", blank=True
-    )
     route = models.CharField(max_length=255, verbose_name="Rota", blank=True)
     manifest = models.CharField(
         max_length=255, verbose_name="Romaneio", blank=True
@@ -30,4 +27,4 @@ class Delivery(models.Model):
         verbose_name_plural = "Entregas (Transporte)"
 
     def __str__(self):
-        return f"Manifesto {self.manifest} - {self.carrier}"
+        return f"{self.route}"
