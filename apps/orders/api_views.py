@@ -13,6 +13,8 @@ from .services.volume_service import VolumeService
 
 logger = logging.getLogger(__name__)
 
+ORDER_ERROR = "Pedido não encontrado."
+
 
 class OrderRetrieveAPIView(generics.RetrieveAPIView):
     """
@@ -48,12 +50,14 @@ class ConfirmShippedAPIView(APIView):
     bem-sucedida. Marca o pedido como 'shipped'.
     """
 
+    queryset = Order.objects.all()
+
     def post(self, request, pk, *args, **kwargs):
         try:
             order = Order.objects.get(pk=pk)
         except Order.DoesNotExist:
             return Response(
-                {"error": "Pedido não encontrado."},
+                {"error": ORDER_ERROR},
                 status=status.HTTP_404_NOT_FOUND,
             )
         VolumeService.mark_shipped(order)
@@ -69,12 +73,14 @@ class MarkFailedAPIView(APIView):
     Marca o pedido como 'failed' para reprocessamento.
     """
 
+    queryset = Order.objects.all()
+
     def post(self, request, pk, *args, **kwargs):
         try:
             order = Order.objects.get(pk=pk)
         except Order.DoesNotExist:
             return Response(
-                {"error": "Pedido não encontrado."},
+                {"error": ORDER_ERROR},
                 status=status.HTTP_404_NOT_FOUND,
             )
         VolumeService.mark_failed(order)
@@ -119,13 +125,15 @@ class ConfirmVolumesAPIView(APIView):
     Não gera ZPL nem aciona impressão.
     """
 
+    queryset = Order.objects.all()
+
     def patch(self, request, pk, *args, **kwargs):
         try:
             try:
                 order = Order.objects.get(pk=pk)
             except Order.DoesNotExist:
                 return Response(
-                    {"error": "Pedido não encontrado."},
+                    {"error": ORDER_ERROR},
                     status=status.HTTP_404_NOT_FOUND,
                 )
 
@@ -190,6 +198,8 @@ class BulkProcessVolumesAPIView(APIView):
             "zpl_commands": ["^XA...^XZ", ...]
         }
     """
+
+    queryset = Order.objects.all()
 
     def post(self, request, *args, **kwargs):
         orders_data = request.data.get("orders", [])
@@ -264,6 +274,8 @@ class ConvertZPLToPDFAPIView(APIView):
     Recebe uma lista de strings ZPL e usa a Labelary API para
     retornar um PDF de múltiplas páginas com todas as etiquetas.
     """
+
+    queryset = Order.objects.all()
 
     def post(self, request, *args, **kwargs):
         from django.http import HttpResponse
