@@ -98,8 +98,7 @@ def load_sql_file(apps, schema_editor):
     setval_stmts = _parse_setval_statements(sql_text)
 
     conn = schema_editor.connection.connection  # underlying psycopg2 connection
-    cursor = conn.cursor()
-    try:
+    with conn.cursor() as cursor:
         for table, columns, data_lines in copy_blocks:
             strip_cols = _STRIP_COLUMNS.get(table, set())
             copy_sql, stream = _build_copy_stream(table, columns, data_lines, strip_cols)
@@ -108,8 +107,7 @@ def load_sql_file(apps, schema_editor):
         # Reset sequences so future INSERTs don't collide with seeded IDs
         for stmt in setval_stmts:
             cursor.execute(stmt)
-    finally:
-      cursor.close()
+
 
 def unload_seed_data(apps, schema_editor):
     with schema_editor.connection.cursor() as cursor:
