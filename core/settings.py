@@ -277,26 +277,9 @@ SPECTACULAR_SETTINGS = {
 }
 
 # Celery Configuration
-# Construct the Redis URL from individual Railway variables when available.
-# Railway's Redis template uses password-only auth (no username), so the
-# correct URL format is redis://:password@host:port/db — not the
-# redis://default:password@host:port/db format that CELERY_BROKER_URL
-# injected by Railway may contain, which causes authentication failures.
-_redis_host = os.getenv("REDISHOST")
-_redis_port = os.getenv("REDISPORT", "6379")
-_redis_password = os.getenv("REDISPASSWORD", "")
-
-if _redis_host:
-    # Build URL manually to guarantee the correct no-username format.
-    _redis_auth = f":{_redis_password}@" if _redis_password else "@"
-    _redis_base_url = f"redis://{_redis_auth}{_redis_host}:{_redis_port}"
-    CELERY_BROKER_URL = f"{_redis_base_url}/0"
-    CELERY_RESULT_BACKEND = f"{_redis_base_url}/0"
-else:
-    CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", "redis://redis:6379/0")
-    CELERY_RESULT_BACKEND = os.getenv(
-        "CELERY_RESULT_BACKEND", "redis://redis:6379/0"
-    )
+# Use REDIS_URL from Railway which includes proper authentication
+CELERY_BROKER_URL = os.getenv("REDIS_URL", "redis://redis:6379/0")
+CELERY_RESULT_BACKEND = os.getenv("REDIS_URL", "redis://redis:6379/0")
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
