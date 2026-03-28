@@ -5,7 +5,7 @@
 
 [build]
 builder = "DOCKERFILE"
-dockerfilePath = "docker/django/Dockerfile"
+dockerfilePath = "docker/docs/Dockerfile"
 watchPatterns = [
     "docs/**",
     "mkdocs.yml",
