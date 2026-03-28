@@ -44,3 +44,59 @@ Nós utilizamos `Ruff` e `Prettier`. Antes de commitar instale o hook:
 ```bash
 pre-commit install
 ```
+
+## Ciclo de Vida do Desenvolvimento (Dev Flow)
+
+```mermaid
+flowchart LR
+    A[Clone Repo] --> B[uv sync / pip install]
+    B --> C[Copiar .env]
+    C --> D[Docker DB/Redis]
+    D --> E[Migrate & Tailwind]
+    E --> F{Desenvolvimento}
+    F --> G[Testes Pytest]
+    G --> H[Commit Pre-hook]
+    H --> I[Push to GH]
+```
+
+## Camada de Testes Automatizados (Pytest)
+
+O projeto usa `pytest` para testes unitários e de integração, com foco especial nas regras logísticas e de multi-volumes.
+
+### Como Rodar os Testes
+
+<!-- INSERIR_SCREENSHOT: Terminal mostrando o output do pytest passando verde -->
+> 🖼️ *[Captura de Tela do Terminal Rodando Testes Aqui]*
+
+Para executar toda a suíte de testes:
+```bash
+pytest
+```
+
+**Opções Comuns:**
+- `pytest -v`: Modo detalhado (verbose)
+- `pytest -k "nome_do_teste"`: Filtra execução pelo nome
+- `pytest --cov=.`: Gera relatório de cobertura de código
+- `pytest -x`: Falha rápida (para no primeiro erro)
+
+### Estrutura Visual dos Testes
+
+A organização segue a divisão modular dos apps na pasta `/tests/`:
+
+```mermaid
+mindmap
+  root((Testes Automatizados))
+    Produtos
+      Item
+      ItemVolume
+      Packaging
+    Pedidos
+      Cálculos
+      Totais e Constraints
+    Imports
+      Leitura Async Excel
+      Validação de Headers
+    Ticket Printer
+      Motor ZPL
+      Templates
+```

@@ -13,7 +13,7 @@ O **Picking Ticket Printer System** é uma solução robusta baseada em Django p
 
 ## 🛠️ Stack Tecnológica
 
-- **Backend**: Python 3.13+, Django 6.0.
+- **Backend**: Python 3.13+, Django 5.x.
 - **API**: Django Rest Framework (DRF).
 - **Banco de Dados**: PostgreSQL (Produção) / SQLite (Desenvolvimento).
 - **Task Queue**: Celery + Redis.
@@ -82,8 +82,8 @@ celery -A core worker -l info  # Worker
 Para mais informações, consulte nossa documentação técnica completa na pasta [`docs/`](./docs):
 
 - [🏛️ Arquitetura do Sistema](./docs/architecture.md)
-- [📘 Manual do Operador](./docs/manual/user_manual.md) (Em breve)
-- [👨‍💻 Guia de Desenvolvimento](./docs/guides/development.md) (Em breve)
+- [📘 Manual do Operador](./docs/manual/user_manual.md)
+- [👨‍💻 Guia de Desenvolvimento](./docs/guides/development.md)
 
 A documentação também pode ser visualizada via MkDocs:
 

@@ -12,7 +12,7 @@ packages = [
 [project]
 name = "picking-ticket-printer-django-system"
 version = "2.0.0"
-description = "Add your description here"
+description = "Sistema de impressão de romaneio para Avance Farma"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
