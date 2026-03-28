@@ -1,0 +1,20 @@
+# ─── Railway Config: MkDocs Documentation Server ─────────────────────────────
+# Dashboard: Create a new service → same repo → Config Path: railway-docs.toml
+# IMPORTANT: Set variable INSTALL_DEV=true in the Railway dashboard for this service
+# Docs: https://docs.railway.com/config-as-code/reference
+
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "docker/django/Dockerfile"
+watchPatterns = [
+    "docs/**",
+    "mkdocs.yml",
+]
+
+[deploy]
+# MkDocs live server — $PORT is injected by Railway
+startCommand = "/app/.venv/bin/mkdocs serve -a 0.0.0.0:$PORT"
+healthcheckPath = "/"
+healthcheckTimeout = 120
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3

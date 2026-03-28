@@ -81,6 +81,21 @@ services:
     networks:
       - backend
 
+  # ─── MkDocs Live Server (Production) ─────────────────────────────────────
+  docs:
+    build:
+      context: ../../
+      dockerfile: docker/django/Dockerfile
+      target: runtime
+      args:
+        INSTALL_DEV: "true" # MkDocs is installed as a dev dependency
+    restart: unless-stopped
+    command: /bin/sh -c "/app/.venv/bin/mkdocs serve -a 0.0.0.0:8001"
+    env_file:
+      - ../../.env
+    networks:
+      - frontend
+
   # ─── Nginx Reverse Proxy (Production) ────────────────────────────────────
   nginx:
     build:
@@ -88,7 +103,7 @@ services:
       dockerfile: docker/nginx/Dockerfile
     restart: unless-stopped
     ports:
-      - "80:80"
+      - "8080:80"
     volumes:
       - static_volume:/staticfiles:ro
       - media_volume:/media:ro

@@ -1,9 +1,13 @@
 #!/bin/sh
 set -e
 
-# ─── Wait for PostgreSQL to be available ─────────────────────────────────────
-echo "Waiting for PostgreSQL at ${DB_HOST}:${DB_PORT}..."
-until python -c "
+# ─── Apply database migrations & collect static files ────────────────────────
+# On Railway, these are handled by the preDeployCommand in railway.toml.
+# The RAILWAY_ENVIRONMENT variable is automatically set by Railway.
+if [ -z "$RAILWAY_ENVIRONMENT" ]; then
+  # ─── Wait for PostgreSQL to be available ─────────────────────────────────────
+  echo "Waiting for PostgreSQL at ${DB_HOST}:${DB_PORT}..."
+  until python -c "
 import socket, sys
 try:
     s = socket.create_connection(('${DB_HOST}', int('${DB_PORT}')), timeout=2)
@@ -12,21 +16,19 @@ try:
 except Exception:
     sys.exit(1)
 " 2>/dev/null; do
-  echo "  → PostgreSQL not ready yet, retrying in 2s..."
-  sleep 2
-done
-echo "PostgreSQL is available!"
+    echo "  → PostgreSQL not ready yet, retrying in 2s..."
+    sleep 2
+  done
+  echo "PostgreSQL is available!"
 
-# ─── Apply database migrations ───────────────────────────────────────────────
-echo "Running migrations..."
-python manage.py migrate --fake-initial --noinput
+  echo "Running migrations..."
+  python manage.py migrate --fake-initial --noinput
 
-# ─── Collect static files ────────────────────────────────────────────────────
-# Static files are always collected so Nginx can pick them up via volume
-echo "Collecting static files..."
-python manage.py collectstatic --noinput --clear
-
-# ─── Start Application ────────────────────────────────────────────────────────
+  echo "Collecting static files..."
+  python manage.py collectstatic --noinput --clear
+else
+  echo "Railway environment detected — migrations handled by preDeployCommand"
+fi
 # ─── Start Application ────────────────────────────────────────────────────────
 # If a command is passed to the container, execute it instead of the default uvicorn
 if [ $# -gt 0 ]; then

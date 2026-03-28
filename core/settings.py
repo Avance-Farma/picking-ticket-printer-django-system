@@ -91,6 +91,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -131,7 +132,10 @@ WSGI_APPLICATION = "core.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
-if os.getenv("POSTGRES_DB"):
+# Railway injects DATABASE_URL — use it with priority
+if os.getenv("DATABASE_URL"):
+    DATABASES = {"default": env.db_url("DATABASE_URL")}
+elif os.getenv("POSTGRES_DB"):
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.postgresql_psycopg2",
@@ -198,6 +202,13 @@ USE_TZ = True
 STATIC_URL = "static/"
 STATIC_ROOT = env("STATIC_ROOT", default=BASE_DIR / "staticfiles")
 
+# WhiteNoise: compressed and hashed static files for production
+STORAGES = {
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
+
 # Media files
 MEDIA_URL = "media/"
 MEDIA_ROOT = env("MEDIA_ROOT", default=BASE_DIR / "media")
@@ -207,7 +218,7 @@ MEDIA_ROOT = env("MEDIA_ROOT", default=BASE_DIR / "media")
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # CORS
-CORS_ALLOW_ALL_ORIGINS = True  # For MVP and local QZ Tray communication
+CORS_ALLOW_ALL_ORIGINS = env.bool("CORS_ALLOW_ALL_ORIGINS", default=DEBUG)
 
 # DRF & SimpleJWT
 REST_FRAMEWORK = {
@@ -278,7 +289,7 @@ CELERY_RESULT_SERIALIZER = "json"
 CELERY_TIMEZONE = TIME_ZONE
 
 # Cache Configuration (Redis)
-if os.getenv("POSTGRES_DB"):
+if os.getenv("REDIS_URL") or os.getenv("POSTGRES_DB"):
     CACHES = {
         "default": {
             "BACKEND": "django_redis.cache.RedisCache",
@@ -299,8 +310,14 @@ else:
 # ─── Security Best Practices ─────────────────
 X_FRAME_OPTIONS = "DENY"
 
+# Railway (and most PaaS) terminate TLS at the proxy layer.
+# This header tells Django to trust the proxy's X-Forwarded-Proto header.
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
 if not DEBUG:
-    SECURE_SSL_REDIRECT = env.bool("SECURE_SSL_REDIRECT", default=True)
+    # Default False: Railway handles TLS at the edge, so Django should not redirect.
+    # Set SECURE_SSL_REDIRECT=True only if you handle TLS differently.
+    SECURE_SSL_REDIRECT = env.bool("SECURE_SSL_REDIRECT", default=False)
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
     SECURE_HSTS_SECONDS = env.int("SECURE_HSTS_SECONDS", default=31536000)

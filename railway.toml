@@ -1,0 +1,29 @@
+# ─── Railway Config: Web Service (Django / Uvicorn) ──────────────────────────
+# Docs: https://docs.railway.com/config-as-code/reference
+
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "docker/django/Dockerfile"
+watchPatterns = [
+    "apps/**",
+    "core/**",
+    "theme/**",
+    "docker/django/**",
+    "pyproject.toml",
+    "uv.lock",
+]
+
+[deploy]
+# Uvicorn production server — Railway injects $PORT automatically
+startCommand = "uvicorn core.asgi:application --host 0.0.0.0 --port $PORT --workers ${UVICORN_WORKERS:-4} --log-level info"
+# Migrations and static collection run BEFORE the new container receives traffic
+preDeployCommand = "python manage.py migrate --noinput && python manage.py collectstatic --noinput --clear"
+healthcheckPath = "/health/"
+healthcheckTimeout = 300
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 5
+
+[deploy.teardown]
+# Zero-downtime deployment: old container stays alive during transition
+overlapSeconds = 10
+drainingSeconds = 30

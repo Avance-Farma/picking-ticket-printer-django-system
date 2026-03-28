@@ -38,6 +38,7 @@ dependencies = [
     "django-unfold>=0.83.1",
     "cookiecutter>=2.7.1",
     "django-redis>=6.0.0",
+    "whitenoise>=6.8.0",
 ]
 
 # Dependências de Desenvolvimento (instaladas com uv sync --dev)
