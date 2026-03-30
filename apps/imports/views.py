@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 
 from django.conf import settings
@@ -18,6 +19,8 @@ from apps.orders.models import Order
 
 from .models import ImportBatch
 from .tasks import process_import_batch_task
+
+logger = logging.getLogger(__name__)
 
 
 class UploadImportView(
@@ -48,9 +51,16 @@ class UploadImportView(
                 status=400,
             )
 
-        fs = FileSystemStorage(
-            location=os.path.join(settings.BASE_DIR, "tmp", "uploads")
-        )
+        upload_dir = os.path.join(settings.BASE_DIR, "tmp", "uploads")
+        try:
+            os.makedirs(upload_dir, exist_ok=True)
+        except OSError:
+            logger.exception("Failed to create upload directory: %s", upload_dir)
+            return JsonResponse(
+                {"error": "Upload directory could not be created."}, status=500
+            )
+
+        fs = FileSystemStorage(location=upload_dir)
 
         file_paths = []
         for f in import_files:
@@ -59,7 +69,7 @@ class UploadImportView(
                 full_path = fs.path(saved_name)
                 file_paths.append((full_path, f.name))
             except Exception:
-                pass
+                logger.exception("Failed to save uploaded file: %s", f.name)
 
         if not file_paths:
             return JsonResponse(
