@@ -1,6 +1,12 @@
 #!/bin/sh
 set -e
 
+# Fix volume permissions if running as root (Railway volumes are mounted as root)
+if [ "$(id -u)" = "0" ]; then
+  chmod 755 /app/uploads 2>/dev/null || true
+  chown -R django:django /app/uploads 2>/dev/null || true
+fi
+
 # ─── Apply database migrations & collect static files ────────────────────────
 # On Railway, these are handled by the preDeployCommand in railway.toml.
 # RAILWAY_ENVIRONMENT_NAME is automatically set by Railway.
