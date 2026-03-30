@@ -54,14 +54,14 @@ fi
 # In Development we want reload enabled, in Production we run it normally
 if [ "$DJANGO_ENV" = "development" ]; then
   echo "Starting Uvicorn in RELOAD mode (Development)..."
-  exec uvicorn core.asgi:application \
+  exec su-exec django uvicorn core.asgi:application \
     --host 0.0.0.0 \
     --port ${PORT:-8000} \
     --reload \
     --log-level ${UVICORN_LOG_LEVEL:-info}
 else
   echo "Starting Uvicorn with multiple workers (Production)..."
-  exec uvicorn core.asgi:application \
+  exec su-exec django uvicorn core.asgi:application \
     --host 0.0.0.0 \
     --port ${PORT:-8000} \
     --workers ${UVICORN_WORKERS:-4} \

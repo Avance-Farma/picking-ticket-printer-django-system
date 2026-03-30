@@ -48,6 +48,7 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq-dev \
     openssl \
+    su-exec \
     && rm -rf /var/lib/apt/lists/*
 
 # ─── Dependencies stage ──────────────────────────────────────────────────────
@@ -94,5 +95,3 @@ RUN mkdir -p /app/uploads && chown django:django /app/uploads
 EXPOSE 8000
 
 ENTRYPOINT ["/entrypoint.sh"]
-
-USER django
