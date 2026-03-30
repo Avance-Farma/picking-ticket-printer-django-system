@@ -1,8 +1,6 @@
 import json
 import logging
-import os
 
-from django.conf import settings
 from django.contrib.auth.mixins import (
     LoginRequiredMixin,
     PermissionRequiredMixin,
@@ -51,14 +49,7 @@ class UploadImportView(
                 status=400,
             )
 
-        upload_dir = os.path.join(settings.BASE_DIR, "tmp", "uploads")
-        try:
-            os.makedirs(upload_dir, exist_ok=True)
-        except OSError:
-            logger.exception("Failed to create upload directory: %s", upload_dir)
-            return JsonResponse(
-                {"error": "Upload directory could not be created."}, status=500
-            )
+        upload_dir = "/app/uploads"
 
         fs = FileSystemStorage(location=upload_dir)
 
