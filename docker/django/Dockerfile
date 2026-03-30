@@ -88,6 +88,9 @@ RUN sed -i 's/\r$//' /entrypoint.sh && chmod +x /entrypoint.sh
 # This allows the named volumes from docker-compose to inherit correct permissions
 RUN mkdir -p /staticfiles /media && chown django:django /staticfiles /media
 
+# Ensure upload volume is writable by django user
+RUN mkdir -p /app/uploads && chown django:django /app/uploads
+
 USER django
 
 EXPOSE 8000
