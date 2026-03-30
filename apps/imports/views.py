@@ -58,7 +58,7 @@ class UploadImportView(
             try:
                 saved_name = fs.save(f.name, f)
                 full_path = fs.path(saved_name)
-                file_paths.append((full_path, f.name))
+                file_paths.append((full_path, saved_name))
             except Exception:
                 logger.exception("Failed to save uploaded file: %s", f.name)
 
