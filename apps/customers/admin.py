@@ -18,14 +18,14 @@ class CustomerAdmin(ModelAdmin):
         "code",
         "name",
         "id_number",
-        "address",
-        "created_at",
-        "updated_at",
+        "address__city",
+        "address__street",
     )
     list_filter = (
         "created_at",
         "updated_at",
     )
+    readonly_fields = ("created_at", "updated_at")
 
 
 admin.site.register(Customer, CustomerAdmin)

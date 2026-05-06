@@ -1,5 +1,8 @@
 import logging
 
+from django.utils import timezone
+
+from apps.erp_sync.tasks import push_volume_to_erp_task
 from apps.orders.models import Order
 from apps.ticket_printer.services.zpl_service import ZPLGenerator
 
@@ -14,14 +17,34 @@ class VolumeService:
     """
 
     @staticmethod
-    def confirm_volumes(order: Order, total_volumes: int) -> None:
+    def confirm_volumes(order: Order, total_volumes: int) -> dict:
         """
         Confirma a quantidade de volumes de um pedido sem gerar ZPL.
         Status: pending → confirmed.
         """
         order.total_volumes = total_volumes
         order.status = Order.StatusChoices.CONFIRMED
-        order.save(update_fields=["total_volumes", "status", "updated_at"])
+        order.confirmed_at = timezone.now()
+        order.save(
+            update_fields=[
+                "total_volumes", "status", "confirmed_at", "updated_at"
+            ]
+        )
+
+        result: dict = {"erp_warning": None}
+        # Dispara o push para o ERP de forma assíncrona
+        try:
+            push_volume_to_erp_task.delay(order.order_number, total_volumes)
+        except Exception as exc:
+            logger.error(
+                "Falha ao enfileirar push de volume para pedido %s: %s",
+                order.order_number,
+                exc,
+            )
+            result["erp_warning"] = (
+                "Falha ao sincronizar com o ERP. A equipe será notificada."
+            )
+        return result
 
     @staticmethod
     def process_and_print(order: Order, total_volumes: int) -> list[str]:
@@ -42,7 +65,13 @@ class VolumeService:
 
         order.total_volumes = total_volumes
         order.status = Order.StatusChoices.IN_PROGRESS
-        order.save(update_fields=["total_volumes", "status", "updated_at"])
+        if not order.confirmed_at:
+            order.confirmed_at = timezone.now()
+        order.save(
+            update_fields=[
+                "total_volumes", "status", "confirmed_at", "updated_at"
+            ]
+        )
 
         logger.info(
             "Order %s ZPL generated (%d volumes), status=in_progress.",
@@ -52,11 +81,30 @@ class VolumeService:
         return zpl_commands
 
     @staticmethod
-    def mark_shipped(order: Order) -> None:
+    def mark_shipped(order: Order) -> dict:
         """Confirma que a impressão foi concluída com sucesso."""
         order.status = Order.StatusChoices.SHIPPED
-        order.save(update_fields=["status", "updated_at"])
+        order.shipped_at = timezone.now()
+        order.save(update_fields=["status", "shipped_at", "updated_at"])
+
+        result: dict = {"erp_warning": None}
+        # Dispara o push para o ERP de forma assíncrona
+        try:
+            push_volume_to_erp_task.delay(
+                order.order_number, order.total_volumes
+            )
+        except Exception as exc:
+            logger.error(
+                "Falha ao enfileirar push de expedição para pedido %s: %s",
+                order.order_number,
+                exc,
+            )
+            result["erp_warning"] = (
+                "Falha ao sincronizar com o ERP. A equipe será notificada."
+            )
+        
         logger.info("Order %s marked as shipped.", order.order_number)
+        return result
 
     @staticmethod
     def mark_failed(order: Order) -> None:

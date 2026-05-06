@@ -5,7 +5,7 @@ from django.http import HttpResponse
 from django.shortcuts import redirect
 from django.utils.translation import gettext_lazy as _
 from unfold.admin import ModelAdmin
-from unfold.decorators import action
+from unfold.decorators import action, display
 
 from apps.orders.models import Order, OrderItem
 
@@ -20,6 +20,7 @@ class OrderAdmin(ModelAdmin):
         "delivery__route",
         "customer__name",
         "import_source",
+        "display_erp_sync_status",
         "status",
         "created_at",
         "updated_at",
@@ -32,11 +33,32 @@ class OrderAdmin(ModelAdmin):
     )
     list_filter = (
         "status",
+        "erp_volume_sync_status",
         "import_source",
         "created_at",
         "delivery__route",
         "picking",
     )
+    readonly_fields = (
+        "created_at",
+        "updated_at",
+        "confirmed_at",
+        "shipped_at",
+        "import_source",
+        "erp_volume_sync_status",
+        "erp_volume_sync_error",
+    )
+
+    @display(
+        description="Sincronização ERP",
+        label={
+            Order.ERPSyncStatus.SENT: "success",
+            Order.ERPSyncStatus.ERROR: "danger",
+            Order.ERPSyncStatus.PENDING: "info",
+        },
+    )
+    def display_erp_sync_status(self, obj):
+        return obj.get_erp_volume_sync_status_display()
 
     @action(description=_("Exportar Todos os Pedidos em CSV"))
     def export_orders_action(self, request):
@@ -97,6 +119,10 @@ class OrderItemAdmin(ModelAdmin):
         "product__sku_code",
     )
     list_filter = (
+        "created_at",
+        "updated_at",
+    )
+    readonly_fields = (
         "created_at",
         "updated_at",
     )

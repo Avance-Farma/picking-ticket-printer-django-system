@@ -101,6 +101,7 @@ INSTALLED_APPS = [
     "apps.deliveries",
     "apps.ticket_printer",
     "apps.erp_sync",
+    "apps.api",
 ]
 
 MIDDLEWARE = [
@@ -253,6 +254,7 @@ REST_FRAMEWORK = {
         "anon": "100/day",
         "user": "1000/day",
         "auth": "5/min",
+        "erp": "500/day",
     },
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }

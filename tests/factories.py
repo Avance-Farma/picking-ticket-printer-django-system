@@ -57,6 +57,8 @@ class OrderFactory(factory.django.DjangoModelFactory):
     customer = factory.SubFactory(CustomerFactory)
     delivery = factory.SubFactory(DeliveryFactory)
     status = "pending"
+    confirmed_at = None
+    shipped_at = None
 
 
 class OrderItemFactory(factory.django.DjangoModelFactory):

@@ -10,7 +10,11 @@ ERPSyncStatusView   — GET: retorna o status atual de um ERPSyncLog pelo ID.
 
 import logging
 
-from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
+from django.contrib.auth.mixins import (
+    LoginRequiredMixin,
+)
+from drf_spectacular.utils import extend_schema, inline_serializer
+from rest_framework import serializers
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -32,6 +36,27 @@ class ERPSyncTriggerView(LoginRequiredMixin, APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        request=inline_serializer(
+            name="ERPSyncTriggerRequest",
+            fields={
+                "date": serializers.CharField(
+                    required=False, help_text="YYYY-MM-DD"
+                )
+            },
+        ),
+        responses={
+            202: inline_serializer(
+                name="ERPSyncTriggerResponse",
+                fields={
+                    "status": serializers.CharField(),
+                    "log_id": serializers.IntegerField(),
+                    "sync_date": serializers.CharField(),
+                    "message": serializers.CharField(),
+                },
+            )
+        },
+    )
     def post(self, request, *args, **kwargs):
         from datetime import date
 
@@ -46,7 +71,9 @@ class ERPSyncTriggerView(LoginRequiredMixin, APIView):
                 target_date = date.fromisoformat(raw_date)
             except ValueError:
                 return Response(
-                    {"error": f"Data inválida: '{raw_date}'. Use o formato YYYY-MM-DD."},
+                    {
+                        "error": f"Data inválida: '{raw_date}'. Use o formato YYYY-MM-DD."
+                    },
                     status=400,
                 )
         else:
@@ -66,24 +93,30 @@ class ERPSyncTriggerView(LoginRequiredMixin, APIView):
             log.status = ERPSyncLog.StatusChoices.RUNNING
             log.save(update_fields=["status"])
 
-        sync_erp_orders_task.apply_async(kwargs={
-            "manual_log_id": log.id,
-            "sync_date": target_date.strftime("%Y-%m-%d"),
-        })
+        sync_erp_orders_task.apply_async(
+            kwargs={
+                "manual_log_id": log.id,
+                "sync_date": target_date.strftime("%Y-%m-%d"),
+            }
+        )
 
         logger.info(
             "ERP Sync: manual pelo usuário %s — data=%s log_id=%s (novo=%s)",
-            request.user, target_date, log.id, created,
+            request.user,
+            target_date,
+            log.id,
+            created,
         )
 
-        return Response({
-            "status": "queued",
-            "log_id": log.id,
-            "sync_date": target_date.strftime("%d/%m/%Y"),
-            "message": f"Sincronização de {target_date.strftime('%d/%m/%Y')} iniciada.",
-        }, status=202)
-
-
+        return Response(
+            {
+                "status": "queued",
+                "log_id": log.id,
+                "sync_date": target_date.strftime("%d/%m/%Y"),
+                "message": f"Sincronização de {target_date.strftime('%d/%m/%Y')} iniciada.",
+            },
+            status=202,
+        )
 
 
 class ERPSyncStatusView(APIView):
@@ -96,6 +129,28 @@ class ERPSyncStatusView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        responses={
+            200: inline_serializer(
+                name="ERPSyncStatusResponse",
+                fields={
+                    "log_id": serializers.IntegerField(),
+                    "status": serializers.CharField(),
+                    "status_display": serializers.CharField(),
+                    "sync_date": serializers.CharField(),
+                    "branch_ids": serializers.CharField(),
+                    "orders_fetched": serializers.IntegerField(),
+                    "orders_created": serializers.IntegerField(),
+                    "orders_updated": serializers.IntegerField(),
+                    "orders_errors": serializers.IntegerField(),
+                    "error_detail": serializers.CharField(allow_null=True),
+                    "created_at": serializers.CharField(),
+                    "finished_at": serializers.CharField(allow_null=True),
+                    "is_done": serializers.BooleanField(),
+                },
+            )
+        }
+    )
     def get(self, request, log_id, *args, **kwargs):
         try:
             log = ERPSyncLog.objects.get(id=log_id)
@@ -116,9 +171,11 @@ class ERPSyncStatusView(APIView):
             "created_at": log.created_at.strftime("%d/%m/%Y %H:%M:%S"),
             "finished_at": (
                 log.finished_at.strftime("%d/%m/%Y %H:%M:%S")
-                if log.finished_at else None
+                if log.finished_at
+                else None
             ),
-            "is_done": log.status in (
+            "is_done": log.status
+            in (
                 ERPSyncLog.StatusChoices.SUCCESS,
                 ERPSyncLog.StatusChoices.ERROR,
                 ERPSyncLog.StatusChoices.PARTIAL,

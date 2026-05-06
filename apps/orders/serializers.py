@@ -61,6 +61,7 @@ class CustomerDetailSerializer(serializers.ModelSerializer):
 class OrderDetailSerializer(serializers.ModelSerializer):
     customer = CustomerDetailSerializer(read_only=True)
     items = OrderItemSerializer(many=True, read_only=True)
+    order_route = serializers.CharField(read_only=True)
 
     class Meta:
         model = Order
@@ -86,6 +87,8 @@ class OrderDetailSerializer(serializers.ModelSerializer):
             "pending_payment",
             "net_weight",
             "total_volumes",
+            "confirmed_at",
+            "shipped_at",
             "created_at",
             "updated_at",
             "items",

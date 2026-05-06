@@ -21,6 +21,7 @@ class AddressAdmin(ModelAdmin):
         "city",
         "district",
     )
+    readonly_fields = ("created_at", "updated_at")
 
     search_fields = (
         "street",
