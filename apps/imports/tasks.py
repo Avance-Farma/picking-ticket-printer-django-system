@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import tempfile
 
 from celery import chord, shared_task
 from django.db import IntegrityError
@@ -41,9 +42,28 @@ def process_single_file(path, filename, errors):
 
 
 @shared_task
-def process_single_file_task(batch_id, path, filename):
+def process_single_file_task(batch_id, file_content, filename):
     errors = []
-    process_single_file(path, filename, errors)
+
+    _, ext = os.path.splitext(filename)
+    tmp_path = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            suffix=ext, delete=False, dir="/tmp"
+        ) as tmp:
+            tmp.write(file_content if isinstance(file_content, bytes) else bytes(file_content))
+            tmp_path = tmp.name
+
+        process_single_file(tmp_path, filename, errors)
+    except Exception as e:
+        logger.exception("Failed to write temp file for %s", filename)
+        errors.append(f"{filename}: Unexpected failure: {str(e)}")
+    finally:
+        if tmp_path and os.path.exists(tmp_path):
+            try:
+                os.remove(tmp_path)
+            except OSError:
+                pass
 
     ImportBatch.objects.filter(id=batch_id).update(
         processed_files=F("processed_files") + 1
@@ -66,14 +86,14 @@ def finalize_import_batch_task(results, batch_id):
 
 
 @shared_task
-def process_import_batch_task(batch_id, file_paths):
-    if not file_paths:
+def process_import_batch_task(batch_id, file_payloads):
+    if not file_payloads:
         finalize_import_batch_task([], batch_id)
         return
 
     tasks = [
-        process_single_file_task.s(batch_id, path, filename)
-        for path, filename in file_paths
+        process_single_file_task.s(batch_id, file_content, filename)
+        for file_content, filename in file_payloads
     ]
     callback = finalize_import_batch_task.s(batch_id)
     chord(tasks)(callback)
