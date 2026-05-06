@@ -50,3 +50,11 @@ certs/private-key.pem
 tmp_fix.py
 main.py
 tmp/
+ 
+# Antigravity Kit
+.antigravity/
+.agent/
+.agent/logs/
+.agent/data/
+.agent/scratch/
+specs/

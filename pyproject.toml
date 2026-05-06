@@ -142,6 +142,9 @@ addopts = "--reuse-db --nomigrations --strict-markers --tb=short --cov=apps --co
 # Environment variables for testing (Requires pytest-env)
 env = [
     "DATABASE_URL=sqlite:///:memory:",  # Force SQLite in memory for tests
+    "REDIS_URL=",                       # Disable Redis in tests
+    "POSTGRES_DB=",                     # Disable Postgres logic in tests
+    "CELERY_BROKER_URL=memory://",      # Use memory broker for Celery in tests
 ]
 
 # Custom markers

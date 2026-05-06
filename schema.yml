@@ -4,9 +4,9 @@ info:
   version: 1.0.0
   description: API for Managing Logistics Orders and Label Printing
 paths:
-  /api/token/:
+  /api/v1/auth/token/:
     post:
-      operationId: api_token_create
+      operationId: api_v1_auth_token_create
       description: |-
         Takes a set of user credentials and returns an access and refresh JSON web
         token pair to prove the authentication of those credentials.
@@ -31,9 +31,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/TokenObtainPair'
           description: ''
-  /api/token/refresh/:
+  /api/v1/auth/token/refresh/:
     post:
-      operationId: api_token_refresh_create
+      operationId: api_v1_auth_token_refresh_create
       description: |-
         Takes a refresh type JSON web token and returns an access type JSON web
         token if the refresh token is valid.
@@ -58,23 +58,413 @@ paths:
               schema:
                 $ref: '#/components/schemas/TokenRefresh'
           description: ''
+  /api/v1/auth/token/verify/:
+    post:
+      operationId: api_v1_auth_token_verify_create
+      description: |-
+        Takes a token and indicates if it is valid.  This view provides no
+        information about a token's fitness for a particular use.
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenVerify'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TokenVerify'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TokenVerify'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenVerify'
+          description: ''
+  /api/v1/health/:
+    get:
+      operationId: api_v1_health_retrieve
+      description: Endpoint público para verificar a disponibilidade do serviço de
+        API.
+      summary: Health check da API
+      tags:
+      - system
+      security:
+      - cookieAuth: []
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  version:
+                    type: string
+          description: ''
+  /api/v1/orders/:
+    get:
+      operationId: api_v1_orders_list
+      description: |-
+        Lista pedidos com filtro opcional por picking, pedido ou cliente.
+        Usado pela tela de Orders para popular a tabela.
+      tags:
+      - api
+      security:
+      - cookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Order'
+          description: ''
+  /api/v1/orders/{order_number}/:
+    get:
+      operationId: api_v1_orders_retrieve
+      description: Generic API View (DRF) para consultas REST de pedidos.
+      parameters:
+      - in: path
+        name: order_number
+        schema:
+          type: string
+        required: true
+      tags:
+      - api
+      security:
+      - cookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+          description: ''
+  /api/v1/orders/{id}/confirm-shipped/:
+    post:
+      operationId: api_v1_orders_confirm_shipped_create
+      description: |-
+        POST /orders/api/v1/orders/<pk>/confirm-shipped/
+
+        Chamado pelo cliente (browser) APÓS o QZ Tray confirmar impressão
+        bem-sucedida. Marca o pedido como 'shipped'.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - api
+      security:
+      - cookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConfirmShippedResponse'
+          description: ''
+  /api/v1/orders/{id}/confirm-volumes/:
+    patch:
+      operationId: api_v1_orders_confirm_volumes_partial_update
+      description: |-
+        PATCH /orders/api/v1/<pk>/confirm-volumes/
+
+        Confirma a quantidade de volumes de um pedido na tela de expedição.
+        Apenas salva o total_volumes e atualiza o status para 'confirmed'.
+        Não gera ZPL nem aciona impressão.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedConfirmVolumesRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedConfirmVolumesRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedConfirmVolumesRequest'
+      security:
+      - cookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConfirmVolumesResponse'
+          description: ''
+  /api/v1/orders/{id}/mark-failed/:
+    post:
+      operationId: api_v1_orders_mark_failed_create
+      description: |-
+        POST /orders/api/v1/orders/<pk>/mark-failed/
+
+        Chamado pelo cliente quando o QZ Tray falha ou o usuário cancela.
+        Marca o pedido como 'failed' para reprocessamento.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - api
+      security:
+      - cookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MarkFailedResponse'
+          description: ''
+  /api/v1/orders/detail/{id}/:
+    get:
+      operationId: api_v1_orders_detail_retrieve
+      description: |-
+        GET /orders/api/v1/orders/detail/<pk>/
+
+        Retorna todos os dados de um pedido (incluindo cliente, endereço e itens)
+        para exibição no modal de detalhe.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - api
+      security:
+      - cookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderDetail'
+          description: ''
+  /api/v1/volumes/:
+    get:
+      operationId: api_v1_volumes_list
+      description: |-
+        Lista pedidos com informações de volumes.
+        Suporta filtros por status, order_number, picking e intervalo de datas.
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: Um número de página dentro do conjunto de resultados paginado.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Número de resultados a serem retornados por página.
+        schema:
+          type: integer
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedVolumeInfoList'
+          description: ''
+  /api/v1/volumes/{order_number}/:
+    get:
+      operationId: api_v1_volumes_retrieve
+      description: Detalhes de volumes de um pedido específico.
+      parameters:
+      - in: path
+        name: order_number
+        schema:
+          type: string
+        required: true
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VolumeInfo'
+          description: ''
+  /api/v1/volumes/process/:
+    post:
+      operationId: api_v1_volumes_process_create
+      description: |-
+        POST /orders/api/v1/volumes/process/
+
+        Recebe uma lista de pedidos com suas quantidades de volumes já
+        confirmadas, gera os comandos ZPL e retorna todos em sequência para
+        impressão via QZ Tray.
+
+        Payload esperado:
+            {
+                "orders": [
+                    {"order_id": 1, "total_volumes": 3},
+                    {"order_id": 5, "total_volumes": 2}
+                ]
+            }
+
+        Response:
+            {
+                "success": true,
+                "zpl_commands": ["^XA...^XZ", ...]
+            }
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BulkProcessVolumesRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/BulkProcessVolumesRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/BulkProcessVolumesRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BulkProcessVolumesResponse'
+          description: ''
+  /api/v1/volumes/to-pdf/:
+    post:
+      operationId: api_v1_volumes_to_pdf_create
+      description: |-
+        POST /orders/api/v1/volumes/to-pdf/
+
+        Recebe uma lista de strings ZPL e usa a Labelary API para
+        retornar um PDF de múltiplas páginas com todas as etiquetas.
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConvertZPLToPDFRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ConvertZPLToPDFRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ConvertZPLToPDFRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: string
+                format: binary
+          description: PDF file
+  /erp-sync/api/v1/erp-sync/status/{log_id}/:
+    get:
+      operationId: erp_sync_api_v1_erp_sync_status_retrieve
+      description: |-
+        GET /api/v1/erp-sync/status/<log_id>/
+
+        Retorna o status atual de um ERPSyncLog.
+        Usado pelo frontend para fazer polling após disparar o trigger.
+      parameters:
+      - in: path
+        name: log_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - erp-sync
+      security:
+      - cookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ERPSyncStatusResponse'
+          description: ''
+  /erp-sync/api/v1/erp-sync/trigger/:
+    post:
+      operationId: erp_sync_api_v1_erp_sync_trigger_create
+      description: |-
+        POST /api/v1/erp-sync/trigger/
+
+        Dispara a sincronização ERP imediatamente (para uso manual via botão).
+        Cria um ERPSyncLog com status 'running' e enfileira a Celery task.
+
+        Permissão: usuário logado (mesma permissão da tela de ingestão).
+      tags:
+      - erp-sync
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ERPSyncTriggerRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ERPSyncTriggerRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ERPSyncTriggerRequest'
+      security:
+      - cookieAuth: []
+      - jwtAuth: []
+      responses:
+        '202':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ERPSyncTriggerResponse'
+          description: ''
   /imports/api/v1/imports/progress/:
     get:
       operationId: imports_api_v1_imports_progress_retrieve
-      description: Consulta o status atual do processamento de um lote de importação
-        ZPL e do banco de dados em plano de fundo via Celery.
-      parameters:
-      - in: query
-        name: batch_id
-        schema:
-          type: integer
-        description: ID do lote de importação sendo processado pelo Celery.
-        required: true
       tags:
       - imports
       security:
+      - cookieAuth: []
       - jwtAuth: []
-      - {}
       responses:
         '200':
           content:
@@ -82,189 +472,62 @@ paths:
               schema:
                 $ref: '#/components/schemas/ImportProgressResponse'
           description: ''
-  /orders/api/v1/orders/{numero_pedido}/:
-    get:
-      operationId: orders_api_v1_orders_retrieve
-      description: Generic API View (DRF) para consultas REST de pedidos.
-      parameters:
-      - in: path
-        name: numero_pedido
-        schema:
-          type: string
-        required: true
-      tags:
-      - orders
-      security:
-      - jwtAuth: []
-      - {}
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Pedido'
-          description: ''
-  /volumes/api/v1/volumes/process/:
-    post:
-      operationId: volumes_api_v1_volumes_process_create
-      description: Processa um pedido e gera rótulos (ZPL) com base no número total
-        de volumes especificado.
-      tags:
-      - volumes
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ProcessVolumesRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/ProcessVolumesRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/ProcessVolumesRequest'
-        required: true
-      security:
-      - jwtAuth: []
-      - {}
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ProcessVolumesResponse'
-          description: ''
 components:
   schemas:
-    ImportProgressResponse:
+    AddressDetail:
       type: object
       properties:
-        status:
+        street:
           type: string
-          description: 'O status atual: ''processing'', ''completed'' ou ''error'''
-        processed:
-          type: integer
-          description: Número de planilhas processadas
-        total:
-          type: integer
-          description: Número total de planilhas
-        errors:
-          type: array
-          items:
-            type: string
-          description: A lista de erros parseados caso haja falha em alguma planilha.
-      required:
-      - errors
-      - processed
-      - status
-      - total
-    Pedido:
-      type: object
-      properties:
-        id:
-          type: integer
-          readOnly: true
-        itens:
-          type: array
-          items:
-            $ref: '#/components/schemas/PedidoItem'
-          readOnly: true
-        picking:
+          maxLength: 100
+        number:
           type: string
-          maxLength: 20
-        numero_pedido:
+          maxLength: 10
+        complement:
           type: string
-          maxLength: 30
-        rota:
+          maxLength: 100
+        district:
           type: string
-          nullable: true
-          maxLength: 50
-        cliente_codigo:
+          maxLength: 100
+        city:
           type: string
-          nullable: true
-          maxLength: 30
-        cliente_nome:
+          maxLength: 100
+        state:
           type: string
-          nullable: true
-        cpf_cnpj:
-          type: string
-          nullable: true
-          maxLength: 20
-        endereco_logradouro:
-          type: string
-          nullable: true
-        endereco_numero:
-          type: string
-          nullable: true
-        endereco_bairro:
-          type: string
-          nullable: true
-        endereco_cidade:
-          type: string
-          nullable: true
-        endereco_uf:
-          type: string
-          nullable: true
           maxLength: 2
-        endereco_cep:
+        zip_code:
           type: string
-          nullable: true
-          maxLength: 15
-        criado_em:
-          type: string
-          format: date-time
-          readOnly: true
-      required:
-      - criado_em
-      - id
-      - itens
-      - numero_pedido
-      - picking
-    PedidoItem:
-      type: object
-      properties:
-        id:
-          type: integer
-          readOnly: true
-        codigo_produto:
-          type: string
-          nullable: true
-          maxLength: 50
-        descricao:
-          type: string
-          nullable: true
-        quantidade:
-          type: string
-          format: decimal
-          pattern: ^-?\d{0,15}(?:\.\d{0,3})?$
-        unidade:
-          type: string
-          nullable: true
           maxLength: 20
-        linha_origem:
-          type: integer
-          maximum: 9223372036854775807
-          minimum: -9223372036854775808
-          format: int64
-          nullable: true
-        pedido:
-          type: integer
+        country:
+          type: string
+          maxLength: 100
       required:
-      - id
-      - pedido
-    ProcessVolumesRequest:
+      - city
+      - country
+      - district
+      - state
+      - street
+      - zip_code
+    BulkProcessVolumesOrderInput:
       type: object
       properties:
-        numero_pedido:
-          type: string
-          description: O número do pedido ou número de picking usado na busca.
+        order_id:
+          type: integer
         total_volumes:
           type: integer
-          minimum: 1
-          default: 1
-          description: A quantidade total de volumes que serão gerados.
       required:
-      - numero_pedido
-    ProcessVolumesResponse:
+      - order_id
+      - total_volumes
+    BulkProcessVolumesRequest:
+      type: object
+      properties:
+        orders:
+          type: array
+          items:
+            $ref: '#/components/schemas/BulkProcessVolumesOrderInput'
+      required:
+      - orders
+    BulkProcessVolumesResponse:
       type: object
       properties:
         success:
@@ -273,10 +536,500 @@ components:
           type: array
           items:
             type: string
-          description: Lista de códigos ZPL renderizados para a impressora.
+        errors:
+          type: array
+          items:
+            type: object
+            additionalProperties: {}
       required:
+      - errors
       - success
       - zpl_commands
+    ConfirmShippedResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        status:
+          type: string
+        erp_warning:
+          type: string
+          nullable: true
+      required:
+      - status
+      - success
+    ConfirmVolumesResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        order_id:
+          type: integer
+        total_volumes:
+          type: integer
+        status:
+          type: string
+        erp_warning:
+          type: string
+          nullable: true
+      required:
+      - order_id
+      - status
+      - success
+      - total_volumes
+    ConvertZPLToPDFRequest:
+      type: object
+      properties:
+        zpl_commands:
+          type: array
+          items:
+            type: string
+      required:
+      - zpl_commands
+    CustomerDetail:
+      type: object
+      properties:
+        code:
+          type: string
+          maxLength: 100
+        name:
+          type: string
+          maxLength: 100
+        id_number:
+          type: string
+          maxLength: 20
+        phone:
+          type: string
+          nullable: true
+          title: Telefone
+          maxLength: 50
+        address:
+          allOf:
+          - $ref: '#/components/schemas/AddressDetail'
+          readOnly: true
+      required:
+      - address
+      - code
+      - id_number
+      - name
+    ERPSyncStatusResponse:
+      type: object
+      properties:
+        log_id:
+          type: integer
+        status:
+          type: string
+        status_display:
+          type: string
+        sync_date:
+          type: string
+        branch_ids:
+          type: string
+        orders_fetched:
+          type: integer
+        orders_created:
+          type: integer
+        orders_updated:
+          type: integer
+        orders_errors:
+          type: integer
+        error_detail:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+        finished_at:
+          type: string
+          nullable: true
+        is_done:
+          type: boolean
+      required:
+      - branch_ids
+      - created_at
+      - error_detail
+      - finished_at
+      - is_done
+      - log_id
+      - orders_created
+      - orders_errors
+      - orders_fetched
+      - orders_updated
+      - status
+      - status_display
+      - sync_date
+    ERPSyncTriggerRequest:
+      type: object
+      properties:
+        date:
+          type: string
+          description: YYYY-MM-DD
+    ERPSyncTriggerResponse:
+      type: object
+      properties:
+        status:
+          type: string
+        log_id:
+          type: integer
+        sync_date:
+          type: string
+        message:
+          type: string
+      required:
+      - log_id
+      - message
+      - status
+      - sync_date
+    ImportProgressResponse:
+      type: object
+      properties:
+        status:
+          type: string
+        processed:
+          type: integer
+        total:
+          type: integer
+        errors:
+          type: array
+          items:
+            type: object
+            additionalProperties: {}
+      required:
+      - errors
+      - processed
+      - status
+      - total
+    ImportSourceEnum:
+      enum:
+      - xlsx
+      - api
+      type: string
+      description: |-
+        * `xlsx` - Planilha (XLSX/XLS/PDF)
+        * `api` - API ERP
+    MarkFailedResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        status:
+          type: string
+      required:
+      - status
+      - success
+    Order:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderItem'
+          readOnly: true
+        picking:
+          type: string
+          maxLength: 20
+        order_number:
+          type: string
+          maxLength: 30
+        typing_date:
+          type: string
+          format: date-time
+          nullable: true
+          title: Digitação
+        release_date:
+          type: string
+          format: date-time
+          nullable: true
+          title: Liberação
+        pre_invoice_date:
+          type: string
+          format: date-time
+          nullable: true
+          title: Pré-Nota
+        invoice_number:
+          type: string
+          title: NF
+          maxLength: 50
+        scheduled_date:
+          type: string
+          title: Data Programada
+          maxLength: 50
+        condition:
+          type: string
+          title: Condição
+          maxLength: 100
+        operation:
+          type: string
+          title: Operação
+          maxLength: 100
+        origin:
+          type: string
+          title: Origem
+          maxLength: 100
+        typist:
+          type: string
+          title: Digitador
+          maxLength: 100
+        salesperson:
+          type: string
+          title: Vendedor
+          maxLength: 100
+        releaser:
+          type: string
+          title: Liberador
+          maxLength: 100
+        status:
+          $ref: '#/components/schemas/StatusEnum'
+        confirmed_at:
+          type: string
+          format: date-time
+          nullable: true
+          title: Data da Confirmação
+          description: Timestamp de quando os volumes foram confirmados pelo operador.
+        shipped_at:
+          type: string
+          format: date-time
+          nullable: true
+          title: Data da Expedição
+          description: Timestamp de quando o pedido foi marcado como expedido.
+        situation:
+          type: string
+          title: Situação
+          maxLength: 100
+        import_source:
+          allOf:
+          - $ref: '#/components/schemas/ImportSourceEnum'
+          title: Origem da Importação
+        pending_payment:
+          type: string
+          title: Pendência
+          maxLength: 100
+        net_weight:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,11}(?:\.\d{0,4})?$
+          nullable: true
+          title: Peso Líquido
+        total_volumes:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+          title: Total de Volumes
+          description: Quantidade de volumes confirmada para impressão (persiste para
+            relatórios).
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+        customer:
+          type: integer
+        delivery:
+          type: integer
+          nullable: true
+      required:
+      - created_at
+      - customer
+      - id
+      - items
+      - order_number
+      - picking
+      - updated_at
+    OrderDetail:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        picking:
+          type: string
+          maxLength: 20
+        order_number:
+          type: string
+          maxLength: 30
+        order_route:
+          type: string
+          readOnly: true
+        customer:
+          allOf:
+          - $ref: '#/components/schemas/CustomerDetail'
+          readOnly: true
+        status:
+          $ref: '#/components/schemas/StatusEnum'
+        situation:
+          type: string
+          title: Situação
+          maxLength: 100
+        invoice_number:
+          type: string
+          title: NF
+          maxLength: 50
+        scheduled_date:
+          type: string
+          title: Data Programada
+          maxLength: 50
+        typing_date:
+          type: string
+          format: date-time
+          nullable: true
+          title: Digitação
+        release_date:
+          type: string
+          format: date-time
+          nullable: true
+          title: Liberação
+        pre_invoice_date:
+          type: string
+          format: date-time
+          nullable: true
+          title: Pré-Nota
+        condition:
+          type: string
+          title: Condição
+          maxLength: 100
+        operation:
+          type: string
+          title: Operação
+          maxLength: 100
+        origin:
+          type: string
+          title: Origem
+          maxLength: 100
+        typist:
+          type: string
+          title: Digitador
+          maxLength: 100
+        salesperson:
+          type: string
+          title: Vendedor
+          maxLength: 100
+        releaser:
+          type: string
+          title: Liberador
+          maxLength: 100
+        pending_payment:
+          type: string
+          title: Pendência
+          maxLength: 100
+        net_weight:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,11}(?:\.\d{0,4})?$
+          nullable: true
+          title: Peso Líquido
+        total_volumes:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+          title: Total de Volumes
+          description: Quantidade de volumes confirmada para impressão (persiste para
+            relatórios).
+        confirmed_at:
+          type: string
+          format: date-time
+          nullable: true
+          title: Data da Confirmação
+          description: Timestamp de quando os volumes foram confirmados pelo operador.
+        shipped_at:
+          type: string
+          format: date-time
+          nullable: true
+          title: Data da Expedição
+          description: Timestamp de quando o pedido foi marcado como expedido.
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderItem'
+          readOnly: true
+      required:
+      - created_at
+      - customer
+      - id
+      - items
+      - order_number
+      - order_route
+      - picking
+      - updated_at
+    OrderItem:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        product:
+          type: integer
+        product_sku:
+          type: string
+          readOnly: true
+        product_description:
+          type: string
+          readOnly: true
+        quantity:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,15}(?:\.\d{0,3})?$
+      required:
+      - id
+      - product
+      - product_description
+      - product_sku
+    PaginatedVolumeInfoList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/VolumeInfo'
+    PatchedConfirmVolumesRequest:
+      type: object
+      properties:
+        total_volumes:
+          type: integer
+    StatusEnum:
+      enum:
+      - pending
+      - confirmed
+      - in_progress
+      - shipped
+      - failed
+      type: string
+      description: |-
+        * `pending` - Aguardando
+        * `confirmed` - Confirmado
+        * `in_progress` - Em Progresso
+        * `shipped` - Expedido
+        * `failed` - Falha
     TokenObtainPair:
       type: object
       properties:
@@ -305,11 +1058,73 @@ components:
           readOnly: true
         refresh:
           type: string
-          writeOnly: true
       required:
       - access
       - refresh
+    TokenVerify:
+      type: object
+      properties:
+        token:
+          type: string
+          writeOnly: true
+      required:
+      - token
+    VolumeInfo:
+      type: object
+      properties:
+        order_number:
+          type: string
+          readOnly: true
+        customer_name:
+          type: string
+          readOnly: true
+        route:
+          type: string
+          nullable: true
+          readOnly: true
+        total_volumes:
+          type: integer
+          readOnly: true
+          nullable: true
+          title: Total de Volumes
+          description: Quantidade de volumes confirmada para impressão (persiste para
+            relatórios).
+        status:
+          allOf:
+          - $ref: '#/components/schemas/StatusEnum'
+          readOnly: true
+        confirmed_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+          title: Data da Confirmação
+          description: Timestamp de quando os volumes foram confirmados pelo operador.
+        shipped_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+          title: Data da Expedição
+          description: Timestamp de quando o pedido foi marcado como expedido.
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - confirmed_at
+      - customer_name
+      - order_number
+      - route
+      - shipped_at
+      - status
+      - total_volumes
+      - updated_at
   securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: sessionid
     jwtAuth:
       type: http
       scheme: bearer

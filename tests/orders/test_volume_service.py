@@ -1,5 +1,7 @@
 import pytest
 
+from unittest.mock import patch
+
 from apps.orders.models import Order
 from apps.orders.services.volume_service import VolumeService
 from tests.factories import OrderFactory, OrderItemFactory
@@ -8,6 +10,12 @@ from tests.factories import OrderFactory, OrderItemFactory
 @pytest.mark.unit
 @pytest.mark.django_db
 class TestVolumeService:
+    @pytest.fixture(autouse=True)
+    def mock_erp_task(self):
+        with patch("apps.erp_sync.tasks.push_volume_to_erp_task.delay") as mock:
+            self.mock_erp_task = mock
+            yield mock
+
     def test_confirm_volumes_saves_to_order(self):
         # Arrange
         order = OrderFactory(status="pending")
@@ -19,6 +27,7 @@ class TestVolumeService:
         order.refresh_from_db()
         assert order.total_volumes == 3
         assert order.status == "confirmed"
+        assert order.confirmed_at is not None
 
     def test_confirm_volumes_persists_for_reporting(self):
         """
@@ -77,9 +86,150 @@ class TestVolumeService:
         VolumeService.mark_shipped(order)
         order.refresh_from_db()
         assert order.status == "shipped"
+        assert order.shipped_at is not None
 
     def test_mark_failed_sets_status(self):
         order = OrderFactory(status="in_progress")
         VolumeService.mark_failed(order)
         order.refresh_from_db()
         assert order.status == "failed"
+
+    def test_confirm_volumes_sets_confirmed_at(self):
+        """RED: confirmed_at deve ser populado na confirmação."""
+        order = OrderFactory(status="pending")
+        assert order.confirmed_at is None
+
+        VolumeService.confirm_volumes(order, total_volumes=2)
+        order.refresh_from_db()
+
+        assert order.confirmed_at is not None
+
+    def test_reconfirm_updates_confirmed_at(self):
+        """RED: Re-confirmação deve atualizar confirmed_at."""
+        order = OrderFactory(status="pending")
+        VolumeService.confirm_volumes(order, total_volumes=2)
+        order.refresh_from_db()
+        first_confirmed = order.confirmed_at
+
+        VolumeService.confirm_volumes(order, total_volumes=4)
+        order.refresh_from_db()
+
+        assert order.confirmed_at >= first_confirmed
+        assert order.total_volumes == 4
+
+    def test_mark_shipped_sets_shipped_at(self):
+        """RED: shipped_at deve ser populado na expedição."""
+        order = OrderFactory(status="in_progress")
+        assert order.shipped_at is None
+
+        VolumeService.mark_shipped(order)
+        order.refresh_from_db()
+
+        assert order.shipped_at is not None
+
+    def test_mark_failed_does_not_set_shipped_at(self):
+        """RED: Falha não gera shipped_at."""
+        order = OrderFactory(status="in_progress")
+        VolumeService.mark_failed(order)
+        order.refresh_from_db()
+
+        assert order.shipped_at is None
+
+    def test_process_and_print_sets_confirmed_at_if_missing(self):
+        """RED: Se confirmed_at é None, process_and_print preenche."""
+        order = OrderFactory(status="pending", confirmed_at=None)
+        OrderItemFactory(order=order)
+
+        VolumeService.process_and_print(order, total_volumes=1)
+        order.refresh_from_db()
+
+        assert order.confirmed_at is not None
+
+    def test_process_and_print_preserves_existing_confirmed_at(self):
+        """RED: Se confirmed_at já existe, process_and_print NÃO sobrescreve."""
+        from django.utils import timezone as tz
+        import datetime
+
+        original_time = tz.now() - datetime.timedelta(hours=1)
+        order = OrderFactory(status="confirmed", confirmed_at=original_time)
+        OrderItemFactory(order=order)
+
+        VolumeService.process_and_print(order, total_volumes=1)
+        order.refresh_from_db()
+
+        assert order.confirmed_at == original_time
+
+    def test_confirm_volumes_dispatches_celery_task(self):
+        # Arrange
+        order = OrderFactory(status="pending")
+        
+        # Act
+        VolumeService.confirm_volumes(order, total_volumes=3)
+        
+        # Assert
+        self.mock_erp_task.assert_called_once_with(order.order_number, 3)
+        order.refresh_from_db()
+        assert order.status == "confirmed"
+
+    def test_mark_shipped_dispatches_celery_task(self):
+        # Arrange
+        order = OrderFactory(status="in_progress", total_volumes=5)
+        
+        # Act
+        VolumeService.mark_shipped(order)
+        
+        # Assert
+        self.mock_erp_task.assert_called_once_with(order.order_number, 5)
+        order.refresh_from_db()
+        assert order.status == "shipped"
+
+    def test_confirm_volumes_succeeds_even_if_erp_fails_async(self):
+        """O sucesso local não depende mais do ERP (assíncrono)."""
+        order = OrderFactory(status="pending")
+        
+        # Mesmo que o dispatch da task falhasse (raro), o pedido deve ser confirmado
+        self.mock_erp_task.side_effect = Exception("Celery down")
+        
+        VolumeService.confirm_volumes(order, total_volumes=2)
+        
+        order.refresh_from_db()
+        assert order.status == "confirmed"
+        assert order.total_volumes == 2
+
+    def test_confirm_volumes_returns_dict(self):
+        """RED: confirm_volumes deve retornar um dict com erp_warning."""
+        order = OrderFactory(status="pending")
+        result = VolumeService.confirm_volumes(order, 3)
+        assert isinstance(result, dict)
+        assert "erp_warning" in result
+        assert result["erp_warning"] is None
+
+    def test_confirm_volumes_returns_warning_on_delay_failure(self):
+        """RED: Retorna aviso se o enfileiramento da task falhar."""
+        order = OrderFactory(status="pending")
+        self.mock_erp_task.side_effect = Exception("Redis down")
+        
+        result = VolumeService.confirm_volumes(order, 3)
+        
+        assert result["erp_warning"] is not None
+        order.refresh_from_db()
+        assert order.status == "confirmed"  # Operação local mantida
+
+    def test_mark_shipped_returns_dict(self):
+        """RED: mark_shipped deve retornar um dict com erp_warning."""
+        order = OrderFactory(status="in_progress", total_volumes=2)
+        result = VolumeService.mark_shipped(order)
+        assert isinstance(result, dict)
+        assert "erp_warning" in result
+        assert result["erp_warning"] is None
+
+    def test_mark_shipped_returns_warning_on_delay_failure(self):
+        """RED: Retorna aviso se o enfileiramento da task falhar no mark_shipped."""
+        order = OrderFactory(status="in_progress", total_volumes=2)
+        self.mock_erp_task.side_effect = Exception("Redis down")
+        
+        result = VolumeService.mark_shipped(order)
+        
+        assert result["erp_warning"] is not None
+        order.refresh_from_db()
+        assert order.status == "shipped"  # Operação local mantida

@@ -26,6 +26,8 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     # Auth
     path(API_PATH, include("apps.authentication.urls")),
+    # API Pública (gateway)
+    path(API_PATH, include("apps.api.urls")),
     path(
         "login/",
         auth_views.LoginView.as_view(

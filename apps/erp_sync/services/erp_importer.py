@@ -263,39 +263,53 @@ class ERPOrderImporter:
             # [FUTURO] invoice_value  = _to_decimal(order_json.get("invoiceValue"))
             # [FUTURO] invoice_access_key = _to_str(order_json.get("invoiceAccessKey"))
 
-            order, created = Order.objects.update_or_create(
-                order_number=order_number,
-                picking=picking,
-                defaults={
-                    "customer": customer,
-                    "delivery": delivery,
-                    "import_source": "api",
-                    "status": Order.StatusChoices.PENDING,
-                    "situation": order_status_api,
-                    "invoice_number": invoice_number,
-                    "total_volumes": _to_int(order_json.get("orderPackages")),
-                    "typing_date": _parse_api_datetime(order_json.get("orderDate")),
-                    "pre_invoice_date": _parse_api_datetime(
-                        order_json.get("preNoteDate")
-                    ),
-                    "scheduled_date": _to_str(
-                        order_json.get("scheduledDate") or ""
-                    ),
-                    # Campos sem equivalente na API atual — preservados em branco
-                    # para não sobrescrever valores vindos via XLSX:
-                    # (update_or_create usa `defaults`, portanto só atualiza
-                    #  pedidos que ainda não vieram via XLSX)
-                    "release_date": None,
-                    "condition": "",
-                    "operation": "",
-                    "origin": "",
-                    "typist": "",
-                    "salesperson": "",
-                    "releaser": "",
-                    "pending_payment": "",
-                    "net_weight": None,
-                },
-            )
+            # ── Campos remotos (vindos da API ERP) ────────────────────────────
+            remote_fields = {
+                "customer": customer,
+                "delivery": delivery,
+                "import_source": "api",
+                "situation": order_status_api,
+                "invoice_number": invoice_number,
+                "typing_date": _parse_api_datetime(order_json.get("orderDate")),
+                "pre_invoice_date": _parse_api_datetime(
+                    order_json.get("preNoteDate")
+                ),
+                "scheduled_date": _to_str(
+                    order_json.get("scheduledDate") or ""
+                ),
+            }
+
+            existing = Order.objects.filter(
+                order_number=order_number, picking=picking,
+            ).first()
+
+            if existing is None:
+                order = Order.objects.create(
+                    order_number=order_number,
+                    picking=picking,
+                    status=Order.StatusChoices.PENDING,
+                    total_volumes=_to_int(order_json.get("orderPackages")),
+                    release_date=None,
+                    condition="",
+                    operation="",
+                    origin="",
+                    typist="",
+                    salesperson="",
+                    releaser="",
+                    pending_payment="",
+                    net_weight=None,
+                    **remote_fields,
+                )
+                created = True
+            else:
+                # Atualiza apenas campos remotos
+                for field, value in remote_fields.items():
+                    setattr(existing, field, value)
+                existing.save(
+                    update_fields=[*remote_fields.keys(), "updated_at"]
+                )
+                order = existing
+                created = False
 
             # ── Itens do pedido ───────────────────────────────────────────────
             # Apaga os itens anteriores para reimportar (mesmo padrão do XLSX)
