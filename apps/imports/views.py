@@ -5,7 +5,6 @@ from django.contrib.auth.mixins import (
     LoginRequiredMixin,
     PermissionRequiredMixin,
 )
-from django.core.files.storage import FileSystemStorage
 from django.http import JsonResponse
 from django.shortcuts import render
 from django.views import View
@@ -62,29 +61,24 @@ class UploadImportView(
                 status=400,
             )
 
-        upload_dir = "/app/uploads"
-
-        fs = FileSystemStorage(location=upload_dir)
-
-        file_paths = []
+        file_payloads = []
         for f in import_files:
             try:
-                saved_name = fs.save(f.name, f)
-                full_path = fs.path(saved_name)
-                file_paths.append((full_path, saved_name))
+                content = f.read()
+                file_payloads.append((content, f.name))
             except Exception:
-                logger.exception("Failed to save uploaded file: %s", f.name)
+                logger.exception("Failed to read uploaded file: %s", f.name)
 
-        if not file_paths:
+        if not file_payloads:
             return JsonResponse(
-                {"error": "Failed to store files."}, status=500
+                {"error": "Failed to read files."}, status=500
             )
 
         batch = ImportBatch.objects.create(
-            total_files=len(file_paths), processed_files=0, status="processing"
+            total_files=len(file_payloads), processed_files=0, status="processing"
         )
 
-        process_import_batch_task.delay(batch.id, file_paths)
+        process_import_batch_task.delay(batch.id, file_payloads)
 
         return JsonResponse({"success": True, "batch_id": batch.id})
 
