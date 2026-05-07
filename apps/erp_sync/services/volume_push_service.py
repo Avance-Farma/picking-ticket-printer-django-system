@@ -32,10 +32,10 @@ class ERPVolumePushService:
     @classmethod
     def push_volume(cls, order_number: str, volume: int) -> None:
         """
-        Envia a quantidade de volumes para o ERP. Em caso de falha (401), revalida o token.
-        Se a requisição falhar por erro de rede ou HTTP (400, 500), levanta ERPSyncError.
+        Envia a quantidade de volumes para o ERP via PUT.
+        Endpoint: PUT /api/Avance/UpdateOrderVolume
         """
-        url = f"{cls._base_url()}/api/Avance/UpdateVolumeRequest"
+        url = f"{cls._base_url()}/api/Avance/UpdateOrderVolume"
         payload = {"orderId": order_number, "volume": volume}
 
         token = ERPAuthService.get_valid_token()

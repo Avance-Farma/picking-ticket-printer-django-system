@@ -31,7 +31,7 @@ class TestERPVolumePushService:
         ERPVolumePushService.push_volume(order_number="123456", volume=5)
 
         mock_requests_put.assert_called_once_with(
-            "http://fake-erp.com/api/Avance/UpdateVolumeRequest",
+            "http://fake-erp.com/api/Avance/UpdateOrderVolume",
             json={"orderId": "123456", "volume": 5},
             headers={
                 "accept": "text/plain",
