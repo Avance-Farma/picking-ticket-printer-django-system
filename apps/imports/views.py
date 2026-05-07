@@ -8,6 +8,8 @@ from django.contrib.auth.mixins import (
 from django.http import JsonResponse
 from django.shortcuts import render
 from django.views import View
+from drf_spectacular.utils import extend_schema, inline_serializer
+from rest_framework import serializers
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -70,12 +72,12 @@ class UploadImportView(
                 logger.exception("Failed to read uploaded file: %s", f.name)
 
         if not file_payloads:
-            return JsonResponse(
-                {"error": "Failed to read files."}, status=500
-            )
+            return JsonResponse({"error": "Failed to read files."}, status=500)
 
         batch = ImportBatch.objects.create(
-            total_files=len(file_payloads), processed_files=0, status="processing"
+            total_files=len(file_payloads),
+            processed_files=0,
+            status="processing",
         )
 
         process_import_batch_task.delay(batch.id, file_payloads)
@@ -88,6 +90,21 @@ class ImportProgressAPIView(
 ):
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        responses={
+            200: inline_serializer(
+                name="ImportProgressResponse",
+                fields={
+                    "status": serializers.CharField(),
+                    "processed": serializers.IntegerField(),
+                    "total": serializers.IntegerField(),
+                    "errors": serializers.ListField(
+                        child=serializers.DictField()
+                    ),
+                },
+            )
+        }
+    )
     def get(self, request, *args, **kwargs):
         if not request.user.has_perm("imports.view_importbatch"):
             return Response(

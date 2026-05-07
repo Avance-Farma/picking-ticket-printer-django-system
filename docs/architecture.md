@@ -84,3 +84,22 @@ sequenceDiagram
     C->>R: Altera estado final p/ SUCESSO
 ```
 
+## Integração com ERP (Push)
+
+O sistema realiza uma integração ativa (Push) com o ERP para atualizar a quantidade de volumes assim que um pedido é confirmado ou expedido.
+
+### Contrato de Volume (Outbound)
+
+- **Método**: `PUT`
+- **Endpoint**: `/api/Avance/UpdateVolumeRequest`
+- **Frequência**: Disparado via Celery Task após confirmação de volumes ou expedição.
+- **Payload**:
+  ```json
+  {
+    "orderId": "string (Número do Pedido)",
+    "volume": "integer (Total de Volumes)"
+  }
+  ```
+- **Autenticação**: Bearer Token (JWT) gerenciado pelo `ERPAuthService`.
+- **Resiliência**: Possui retry automático de 3 tentativas em caso de erro de rede.
+

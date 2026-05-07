@@ -12,6 +12,11 @@ class Order(models.Model):
         SHIPPED = "shipped", "Expedido"
         FAILED = "failed", "Falha"
 
+    class ERPSyncStatus(models.TextChoices):
+        PENDING = "pending", "Pendente"
+        SENT = "sent", "Sincronizado"
+        ERROR = "error", "Erro"
+
     picking = models.CharField(max_length=20)
     order_number = models.CharField(max_length=30)
     customer = models.ForeignKey(Customer, on_delete=models.CASCADE)
@@ -62,6 +67,22 @@ class Order(models.Model):
         choices=StatusChoices.choices,
         default=StatusChoices.PENDING,
     )
+    confirmed_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        default=None,
+        verbose_name="Data da Confirmação",
+        help_text=(
+            "Timestamp de quando os volumes foram confirmados pelo operador."
+        ),
+    )
+    shipped_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        default=None,
+        verbose_name="Data da Expedição",
+        help_text="Timestamp de quando o pedido foi marcado como expedido.",
+    )
 
     situation = models.CharField(
         max_length=100, verbose_name="Situação", blank=True
@@ -72,6 +93,19 @@ class Order(models.Model):
         choices=[("xlsx", "Planilha (XLSX/XLS/PDF)"), ("api", "API ERP")],
         default="xlsx",
         db_index=True,
+    )
+
+    erp_volume_sync_status = models.CharField(
+        max_length=10,
+        verbose_name="Sincronização ERP",
+        choices=ERPSyncStatus.choices,
+        default=ERPSyncStatus.PENDING,
+        help_text="Status do envio do volume para a API do ERP.",
+    )
+    erp_volume_sync_error = models.TextField(
+        blank=True,
+        verbose_name="Erro Sincronização ERP",
+        help_text="Detalhes do erro caso a sincronização falhe.",
     )
 
     pending_payment = models.CharField(

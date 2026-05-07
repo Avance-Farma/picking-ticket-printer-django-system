@@ -180,19 +180,48 @@
                     </td>
 
                     <td class="py-3 px-4 align-middle">
-                        <div id="badge-{{ order.pk }}" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold whitespace-nowrap
-                            {% if order.status == STATUS_PENDING %}bg-amber-50 text-amber-800 border border-amber-300
-                            {% elif order.status == STATUS_CONFIRMED %}bg-green-50 text-green-800 border border-green-300
-                            {% elif order.status == STATUS_SHIPPED %}bg-blue-50 text-blue-800 border border-blue-200
-                            {% elif order.status == STATUS_IN_PROGRESS %}bg-purple-50 text-purple-800 border border-purple-200
-                            {% elif order.status == STATUS_FAILED %}bg-red-50 text-red-800 border border-red-300
-                            {% else %}bg-slate-100 text-slate-800 border border-slate-200{% endif %}">
-                            {% if order.status == STATUS_PENDING %}⏳ Aguardando
-                            {% elif order.status == STATUS_CONFIRMED %}✓ Confirmado
-                            {% elif order.status == STATUS_SHIPPED %}📦 Expedido
-                            {% elif order.status == STATUS_IN_PROGRESS %}🔄 Em Progresso
-                            {% elif order.status == STATUS_FAILED %}⚠ Falha
-                            {% else %}{{ order.get_status_display }}{% endif %}
+                        <div class="flex items-center gap-2 flex-wrap min-w-[180px]">
+                            <div id="badge-{{ order.pk }}" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold whitespace-nowrap
+                                {% if order.status == STATUS_PENDING %}bg-amber-50 text-amber-800 border border-amber-300
+                                {% elif order.status == STATUS_CONFIRMED %}bg-green-50 text-green-800 border border-green-300
+                                {% elif order.status == STATUS_SHIPPED %}bg-blue-50 text-blue-800 border border-blue-200
+                                {% elif order.status == STATUS_IN_PROGRESS %}bg-purple-50 text-purple-800 border border-purple-200
+                                {% elif order.status == STATUS_FAILED %}bg-red-50 text-red-800 border border-red-300
+                                {% else %}bg-slate-100 text-slate-800 border border-slate-200{% endif %}">
+                                {% if order.status == STATUS_PENDING %}⏳ Aguardando
+                                {% elif order.status == STATUS_CONFIRMED %}✓ Confirmado
+                                {% elif order.status == STATUS_SHIPPED %}📦 Expedido
+                                {% elif order.status == STATUS_IN_PROGRESS %}🔄 Em Progresso
+                                {% elif order.status == STATUS_FAILED %}⚠ Falha
+                                {% else %}{{ order.get_status_display }}{% endif %}
+                            </div>
+
+                            {% if order.erp_volume_sync_status %}
+                            <div class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider border shadow-sm
+                                {% if order.erp_volume_sync_status == 'sent' %}bg-emerald-50 text-emerald-600 border-emerald-200
+                                {% elif order.erp_volume_sync_status == 'error' %}bg-rose-50 text-rose-600 border-rose-200
+                                {% else %}bg-slate-50 text-slate-400 border-slate-200{% endif %}"
+                                {% if order.erp_volume_sync_status == 'error' and order.erp_volume_sync_error %}title="Erro ERP: {{ order.erp_volume_sync_error }}"{% endif %}>
+                                {% if order.erp_volume_sync_status == 'sent' %}
+                                    <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4">
+                                        <polyline points="20 6 9 17 4 12" />
+                                    </svg>
+                                    ERP
+                                {% elif order.erp_volume_sync_status == 'error' %}
+                                    <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4">
+                                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                                        <line x1="12" y1="9" x2="12" y2="13" />
+                                        <line x1="12" y1="17" x2="12.01" y2="17" />
+                                    </svg>
+                                    ERP
+                                {% else %}
+                                    <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" class="opacity-50">
+                                        <circle cx="12" cy="12" r="1" /><circle cx="19" cy="12" r="1" /><circle cx="5" cy="12" r="1" />
+                                    </svg>
+                                    ERP
+                                {% endif %}
+                            </div>
+                            {% endif %}
                         </div>
                     </td>
 

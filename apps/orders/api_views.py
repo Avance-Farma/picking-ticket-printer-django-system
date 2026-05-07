@@ -3,7 +3,12 @@ import logging
 import sentry_sdk
 from django.core.cache import cache
 from django.db.models import Q
-from rest_framework import generics, status
+from drf_spectacular.utils import (
+    OpenApiResponse,
+    extend_schema,
+    inline_serializer,
+)
+from rest_framework import generics, serializers, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -52,6 +57,21 @@ class ConfirmShippedAPIView(APIView):
 
     queryset = Order.objects.all()
 
+    @extend_schema(
+        request=None,
+        responses={
+            200: inline_serializer(
+                name="ConfirmShippedResponse",
+                fields={
+                    "success": serializers.BooleanField(),
+                    "status": serializers.CharField(),
+                    "erp_warning": serializers.CharField(
+                        allow_null=True, required=False
+                    ),
+                },
+            )
+        },
+    )
     def post(self, request, pk, *args, **kwargs):
         try:
             order = Order.objects.get(pk=pk)
@@ -60,9 +80,15 @@ class ConfirmShippedAPIView(APIView):
                 {"error": ORDER_ERROR},
                 status=status.HTTP_404_NOT_FOUND,
             )
-        VolumeService.mark_shipped(order)
+        result = VolumeService.mark_shipped(order)
         cache.delete("orders_list_queryset")
-        return Response({"success": True, "status": order.status})
+        
+        response_data = {
+            "success": True, 
+            "status": order.status,
+            "erp_warning": result.get("erp_warning"),
+        }
+        return Response(response_data)
 
 
 class MarkFailedAPIView(APIView):
@@ -75,6 +101,18 @@ class MarkFailedAPIView(APIView):
 
     queryset = Order.objects.all()
 
+    @extend_schema(
+        request=None,
+        responses={
+            200: inline_serializer(
+                name="MarkFailedResponse",
+                fields={
+                    "success": serializers.BooleanField(),
+                    "status": serializers.CharField(),
+                },
+            )
+        },
+    )
     def post(self, request, pk, *args, **kwargs):
         try:
             order = Order.objects.get(pk=pk)
@@ -127,6 +165,28 @@ class ConfirmVolumesAPIView(APIView):
 
     queryset = Order.objects.all()
 
+    @extend_schema(
+        request=inline_serializer(
+            name="ConfirmVolumesRequest",
+            fields={
+                "total_volumes": serializers.IntegerField(),
+            },
+        ),
+        responses={
+            200: inline_serializer(
+                name="ConfirmVolumesResponse",
+                fields={
+                    "success": serializers.BooleanField(),
+                    "order_id": serializers.IntegerField(),
+                    "total_volumes": serializers.IntegerField(),
+                    "status": serializers.CharField(),
+                    "erp_warning": serializers.CharField(
+                        allow_null=True, required=False
+                    ),
+                },
+            )
+        },
+    )
     def patch(self, request, pk, *args, **kwargs):
         try:
             try:
@@ -154,7 +214,7 @@ class ConfirmVolumesAPIView(APIView):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-            VolumeService.confirm_volumes(order, total_volumes)
+            result = VolumeService.confirm_volumes(order, total_volumes)
             cache.delete("orders_list_queryset")
 
             return Response({
@@ -162,6 +222,7 @@ class ConfirmVolumesAPIView(APIView):
                 "order_id": order.pk,
                 "total_volumes": order.total_volumes,
                 "status": order.status,
+                "erp_warning": result.get("erp_warning"),
             })
 
         except Exception as e:
@@ -201,6 +262,35 @@ class BulkProcessVolumesAPIView(APIView):
 
     queryset = Order.objects.all()
 
+    @extend_schema(
+        request=inline_serializer(
+            name="BulkProcessVolumesRequest",
+            fields={
+                "orders": inline_serializer(
+                    name="BulkProcessVolumesOrderInput",
+                    fields={
+                        "order_id": serializers.IntegerField(),
+                        "total_volumes": serializers.IntegerField(),
+                    },
+                    many=True,
+                )
+            },
+        ),
+        responses={
+            200: inline_serializer(
+                name="BulkProcessVolumesResponse",
+                fields={
+                    "success": serializers.BooleanField(),
+                    "zpl_commands": serializers.ListField(
+                        child=serializers.CharField()
+                    ),
+                    "errors": serializers.ListField(
+                        child=serializers.DictField()
+                    ),
+                },
+            )
+        },
+    )
     def post(self, request, *args, **kwargs):
         orders_data = request.data.get("orders", [])
 
@@ -277,6 +367,19 @@ class ConvertZPLToPDFAPIView(APIView):
 
     queryset = Order.objects.all()
 
+    @extend_schema(
+        request=inline_serializer(
+            name="ConvertZPLToPDFRequest",
+            fields={
+                "zpl_commands": serializers.ListField(
+                    child=serializers.CharField()
+                )
+            },
+        ),
+        responses={
+            200: OpenApiResponse(description="PDF file", response=bytes)
+        },
+    )
     def post(self, request, *args, **kwargs):
         from django.http import HttpResponse
 

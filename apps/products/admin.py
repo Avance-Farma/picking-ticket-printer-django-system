@@ -22,6 +22,7 @@ class ProductAdmin(ModelAdmin):
     )
     search_fields = ("sku_code", "description")
     list_filter = ("created_at", "updated_at")
+    readonly_fields = ("created_at", "updated_at")
 
     @action(description=_("Exportar Todos os Produtos em CSV"))
     def export_products_action(self, request):
