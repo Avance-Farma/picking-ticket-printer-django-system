@@ -36,11 +36,11 @@ class ERPVolumePushService:
         Endpoint: PUT /api/Avance/UpdateOrderVolume
         """
         url = f"{cls._base_url()}/api/Avance/UpdateOrderVolume"
-        payload = {"orderId": order_number, "volume": volume}
+        payload = [{"orderId": order_number, "volume": volume}]
 
         token = ERPAuthService.get_valid_token()
         headers = {
-            "accept": "text/plain",
+            "accept": "*/*",
             "Authorization": f"Bearer {token}",
         }
 
