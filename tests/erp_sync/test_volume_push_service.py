@@ -32,9 +32,9 @@ class TestERPVolumePushService:
 
         mock_requests_put.assert_called_once_with(
             "http://fake-erp.com/api/Avance/UpdateOrderVolume",
-            json={"orderId": "123456", "volume": 5},
+            json=[{"orderId": "123456", "volume": 5}],
             headers={
-                "accept": "text/plain",
+                "accept": "*/*",
                 "Authorization": "Bearer fake-token",
             },
             timeout=30,
