@@ -302,12 +302,24 @@ class ERPOrderImporter:
                 )
                 created = True
             else:
-                # Atualiza apenas campos remotos
+                # Atualiza campos remotos básicos
                 for field, value in remote_fields.items():
                     setattr(existing, field, value)
-                existing.save(
-                    update_fields=[*remote_fields.keys(), "updated_at"]
-                )
+
+                # Campos locais (picking): permitir atualização se ainda for PENDING,
+                # mas proteger se já estiver CONFIRMED ou SHIPPED.
+                update_fields = [*remote_fields.keys(), "updated_at"]
+                
+                if existing.status == Order.StatusChoices.PENDING:
+                    new_volumes = _to_int(order_json.get("orderPackages"))
+                    if new_volumes is not None and existing.total_volumes != new_volumes:
+                        existing.total_volumes = new_volumes
+                        update_fields.append("total_volumes")
+                
+                # Garantir que erp_volume_sync_status NUNCA seja sobrescrito pelo ERP
+                # (já está fora do remote_fields, mas adicionamos esta nota por clareza)
+
+                existing.save(update_fields=update_fields)
                 order = existing
                 created = False
 

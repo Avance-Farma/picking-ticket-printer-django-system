@@ -3,7 +3,7 @@ ERPVolumePushService — envia atualizações de volume para a API do ERP.
 
 Endpoint: PUT /api/Avance/UpdateVolumeRequest
 Payload:
-  - orderId : string (Número do pedido)
+  - orderId : integer (Número do pedido — convertido de string para int)
   - volume  : integer (Quantidade total de volumes)
 Headers:
   - Authorization : Bearer {token}
@@ -36,7 +36,14 @@ class ERPVolumePushService:
         Endpoint: PUT /api/Avance/UpdateOrderVolume
         """
         url = f"{cls._base_url()}/api/Avance/UpdateOrderVolume"
-        payload = [{"orderId": order_number, "volume": volume}]
+        
+        try:
+            order_id_int = int(order_number)
+        except (ValueError, TypeError) as exc:
+            logger.error("ERP Push: order_number inválido para conversão: %r", order_number)
+            raise ERPSyncError(f"order_number inválido para conversão: {order_number!r}") from exc
+
+        payload = [{"orderId": order_id_int, "volume": volume}]
 
         token = ERPAuthService.get_valid_token()
         headers = {

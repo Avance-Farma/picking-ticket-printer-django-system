@@ -171,7 +171,8 @@ class TestVolumeService:
         order.refresh_from_db()
         assert order.status == "confirmed"
 
-    def test_mark_shipped_dispatches_celery_task(self):
+    def test_mark_shipped_does_not_dispatch_celery_task(self):
+        """[RED] mark_shipped não deve mais enviar push ao ERP (duplicado)."""
         # Arrange
         order = OrderFactory(status="in_progress", total_volumes=5)
         
@@ -179,7 +180,7 @@ class TestVolumeService:
         VolumeService.mark_shipped(order)
         
         # Assert
-        self.mock_erp_task.assert_called_once_with(order.order_number, 5)
+        self.mock_erp_task.assert_not_called()
         order.refresh_from_db()
         assert order.status == "shipped"
 
@@ -223,13 +224,14 @@ class TestVolumeService:
         assert "erp_warning" in result
         assert result["erp_warning"] is None
 
-    def test_mark_shipped_returns_warning_on_delay_failure(self):
-        """RED: Retorna aviso se o enfileiramento da task falhar no mark_shipped."""
+    def test_mark_shipped_no_longer_returns_warning_on_delay_failure(self):
+        """mark_shipped não chama mais o ERP, então não retorna aviso de delay."""
         order = OrderFactory(status="in_progress", total_volumes=2)
-        self.mock_erp_task.side_effect = Exception("Redis down")
+        # Mesmo que a task falhasse se fosse chamada, mark_shipped não a chama
+        self.mock_erp_task.side_effect = Exception("Should not be called")
         
         result = VolumeService.mark_shipped(order)
         
-        assert result["erp_warning"] is not None
+        assert result["erp_warning"] is None
         order.refresh_from_db()
-        assert order.status == "shipped"  # Operação local mantida
+        assert order.status == "shipped"
