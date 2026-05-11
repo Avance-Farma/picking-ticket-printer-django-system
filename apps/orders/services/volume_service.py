@@ -87,24 +87,8 @@ class VolumeService:
         order.shipped_at = timezone.now()
         order.save(update_fields=["status", "shipped_at", "updated_at"])
 
-        result: dict = {"erp_warning": None}
-        # Dispara o push para o ERP de forma assíncrona
-        try:
-            push_volume_to_erp_task.delay(
-                order.order_number, order.total_volumes
-            )
-        except Exception as exc:
-            logger.error(
-                "Falha ao enfileirar push de expedição para pedido %s: %s",
-                order.order_number,
-                exc,
-            )
-            result["erp_warning"] = (
-                "Falha ao sincronizar com o ERP. A equipe será notificada."
-            )
-        
         logger.info("Order %s marked as shipped.", order.order_number)
-        return result
+        return {"erp_warning": None}
 
     @staticmethod
     def mark_failed(order: Order) -> None:
