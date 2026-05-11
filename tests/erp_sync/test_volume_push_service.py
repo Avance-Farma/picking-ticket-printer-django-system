@@ -32,13 +32,27 @@ class TestERPVolumePushService:
 
         mock_requests_put.assert_called_once_with(
             "http://fake-erp.com/api/Avance/UpdateOrderVolume",
-            json=[{"orderId": "123456", "volume": 5}],
+            json=[{"orderId": 123456, "volume": 5}],
             headers={
                 "accept": "*/*",
                 "Authorization": "Bearer fake-token",
             },
             timeout=30,
         )
+
+    def test_push_volume_payload_uses_integer_order_id(self, mock_auth_token, mock_requests_put, settings):
+        """[RED] Garante que o orderId seja enviado como integer, não string"""
+        settings.ERP_API_BASE_URL = "http://fake-erp.com"
+        mock_requests_put.return_value = MagicMock(status_code=200)
+
+        ERPVolumePushService.push_volume(order_number="12345", volume=3)
+
+        # O teste deve falhar se o código atual enviar "12345"
+        mock_requests_put.assert_called_once()
+        args, kwargs = mock_requests_put.call_args
+        sent_payload = kwargs["json"]
+        assert isinstance(sent_payload[0]["orderId"], int), f"orderId deveria ser int, veio {type(sent_payload[0]['orderId'])}"
+        assert sent_payload[0]["orderId"] == 12345
 
     def test_push_volume_401_retry_success(self, mock_auth_token, mock_requests_put, settings):
         """Testa revalidação de token em caso de 401 Unauthorized"""
@@ -85,3 +99,10 @@ class TestERPVolumePushService:
             ERPVolumePushService.push_volume(order_number="222", volume=1)
 
         assert "Erro ao sincronizar volume" in str(exc.value)
+
+    def test_push_volume_invalid_order_number(self, mock_auth_token, mock_requests_put, settings):
+        """Testa se levanta ERPSyncError caso o order_number não seja conversível para int"""
+        with pytest.raises(ERPSyncError) as exc:
+            ERPVolumePushService.push_volume(order_number="ABC-123", volume=1)
+
+        assert "order_number inválido para conversão" in str(exc.value)
