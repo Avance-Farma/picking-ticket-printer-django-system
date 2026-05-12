@@ -1,16 +1,22 @@
 from django.urls import path
 
-from .views import ERPSyncStatusView, ERPSyncTriggerView
+from .views import ERPSyncHeartbeatView, ERPSyncStatusView, ERPSyncTriggerView
 
 urlpatterns = [
     path(
-        "api/v1/erp-sync/trigger/",
+        "trigger/",
         ERPSyncTriggerView.as_view(),
         name="erp-sync-trigger",
     ),
     path(
-        "api/v1/erp-sync/status/<int:log_id>/",
+        "status/<int:log_id>/",
         ERPSyncStatusView.as_view(),
         name="erp-sync-status",
     ),
+    path(
+        "heartbeat/",
+        ERPSyncHeartbeatView.as_view(),
+        name="erp-sync-heartbeat",
+    ),
 ]
+

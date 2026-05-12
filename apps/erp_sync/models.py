@@ -16,8 +16,35 @@ class ERPSyncLog(models.Model):
         PARTIAL = "partial", "Parcial (com erros)"
 
     sync_date = models.DateField(
+        null=True,
+        blank=True,
         verbose_name="Data Sincronizada",
         help_text="Data dos pedidos consultados na API.",
+    )
+    search_mode = models.CharField(
+        max_length=10,
+        choices=[
+            ("date", "Por Data"),
+            ("order", "Por Pedido"),
+            ("prenote", "Por Prenota"),
+        ],
+        default="date",
+        verbose_name="Modo de Busca",
+    )
+    search_filters = models.JSONField(
+        blank=True,
+        default=dict,
+        verbose_name="Filtros de Busca",
+        help_text="Parâmetros extras usados na busca (ex: order_id).",
+    )
+    triggered_by = models.CharField(
+        max_length=10,
+        choices=[
+            ("auto", "Automático"),
+            ("manual", "Manual"),
+        ],
+        default="auto",
+        verbose_name="Origem",
     )
     branch_ids = models.CharField(
         max_length=50,
@@ -63,13 +90,7 @@ class ERPSyncLog(models.Model):
         verbose_name = "Log de Sincronização ERP"
         verbose_name_plural = "Logs de Sincronização ERP"
         ordering = ["-last_checked_at"]
-        # Uma linha por combinação de data+filiais — atualizada no lugar
-        constraints = [
-            models.UniqueConstraint(
-                fields=["sync_date", "branch_ids"],
-                name="erp_sync_log_date_branches_uniq",
-            )
-        ]
+
 
     def __str__(self):
         return (

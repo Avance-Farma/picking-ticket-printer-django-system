@@ -34,9 +34,17 @@ def sync_erp_orders_task(
     self,
     manual_log_id: int | None = None,
     sync_date: str | None = None,
+    # Novos parâmetros para sync manual avançado
+    search_mode: str | None = None,  # "date" | "order" | "prenote"
+    begin_date: str | None = None,
+    end_date: str | None = None,
+    date_type: int = 1,
+    order_id: str | None = None,
+    prenote_id: str | None = None,
+    branch_ids_override: list[int] | None = None,
 ):  # type: ignore[override]
     """
-    Sincroniza os pedidos de uma data específica com a API ERP.
+    Sincroniza os pedidos de uma data específica ou via filtros avançados com a API ERP.
 
     Busca pedidos para cada filial em ERP_BRANCH_IDS (padrão: RJ=27, ES=19),
     insere novos e atualiza os existentes no banco de dados.
@@ -46,13 +54,20 @@ def sync_erp_orders_task(
         manual_log_id: quando disparada manualmente via botão Resync, recebe
                        o ID do log já criado pela view; caso contrário (Beat),
                        cria um novo log.
-        sync_date: data no formato 'YYYY-MM-DD' a sincronizar.
-                   Se não informada, usa o dia atual (comportamento do Beat).
+        sync_date: data no formato 'YYYY-MM-DD' a sincronizar (legado).
+        search_mode: Modo de busca avançado.
+        begin_date: Data de início para modo 'date'.
+        end_date: Data de fim para modo 'date'.
+        date_type: 1=Pedido, 2=Prenota.
+        order_id: ID do pedido para modo 'order'.
+        prenote_id: ID da prenota para modo 'prenote'.
+        branch_ids_override: Lista de IDs de filiais para ignorar settings.
     """
     # Import aqui para evitar circular import no carregamento do Celery
     from apps.erp_sync.models import ERPSyncLog
 
-    # ── 1. Resolve a data alvo ──────────────────────────────────────────────
+    # ── 1. Resolve a data alvo e filiais ────────────────────────────────────
+    target_date = None
     if sync_date:
         try:
             target_date = date.fromisoformat(sync_date)
@@ -61,21 +76,36 @@ def sync_erp_orders_task(
                 "ERP Sync: data inválida: %s — usando hoje.", sync_date
             )
             target_date = date.today()
-    else:
+    elif not search_mode:
         target_date = date.today()
 
-    target_str = target_date.strftime("%Y-%m-%d")
-    branch_ids: list[int] = getattr(settings, "ERP_BRANCH_IDS", [27, 19])
-    branch_ids_str = ",".join(str(b) for b in branch_ids)
+    target_str = target_date.strftime("%Y-%m-%d") if target_date else None
+    
+    effective_branch_ids = branch_ids_override or getattr(settings, "ERP_BRANCH_IDS", [27, 19])
+    branch_ids_str = ",".join(str(b) for b in effective_branch_ids)
 
     logger.info(
-        "ERP Sync: iniciando verificação para data=%s filiais=%s (manual=%s)",
-        target_str, branch_ids, manual_log_id is not None,
+        "ERP Sync: iniciando verificação mode=%s date=%s filiais=%s (manual=%s)",
+        search_mode or "legacy",
+        target_str, 
+        effective_branch_ids, 
+        manual_log_id is not None,
     )
 
     # ── 2. Busca os pedidos na API ──────────────────────────────────────────
     try:
-        orders = ERPOrderService.fetch_orders_for_all_branches(target_str)
+        if search_mode:
+            orders = ERPOrderService.fetch_orders_with_filters(
+                branch_ids=effective_branch_ids,
+                begin_date=begin_date,
+                end_date=end_date,
+                date_type=date_type,
+                order_id=order_id,
+                prenote_id=prenote_id,
+            )
+        else:
+            orders = ERPOrderService.fetch_orders_for_all_branches(target_str)
+
     except Exception as exc:
         logger.exception("ERP Sync: falha ao buscar pedidos da API: %s", exc)
         # Erro de rede: atualiza log pré-existente (manual) ou registra
@@ -153,6 +183,15 @@ def sync_erp_orders_task(
             sync_log.orders_created = stats["created"]
             sync_log.orders_updated = stats["updated"]
             sync_log.orders_errors = stats["errors"]
+            sync_log.search_mode = search_mode or "date"
+            sync_log.search_filters = {
+                "begin_date": begin_date,
+                "end_date": end_date,
+                "date_type": date_type,
+                "order_id": order_id,
+                "prenote_id": prenote_id,
+            } if search_mode else {}
+            sync_log.triggered_by = "manual"
             sync_log.finished_at = now
             sync_log.save(
                 update_fields=[
@@ -161,38 +200,77 @@ def sync_erp_orders_task(
                     "orders_created",
                     "orders_updated",
                     "orders_errors",
+                    "search_mode",
+                    "search_filters",
+                    "triggered_by",
                     "finished_at",
                     "last_checked_at",
                 ]
             )
         except ERPSyncLog.DoesNotExist:
             # Fallback: cria via update_or_create
+            ERPSyncLog.objects.create(
+                sync_date=target_date,
+                branch_ids=branch_ids_str,
+                status=final_status,
+                orders_fetched=len(orders),
+                orders_created=stats["created"],
+                orders_updated=stats["updated"],
+                orders_errors=stats["errors"],
+                search_mode=search_mode or "date",
+                search_filters={
+                    "begin_date": begin_date,
+                    "end_date": end_date,
+                    "date_type": date_type,
+                    "order_id": order_id,
+                    "prenote_id": prenote_id,
+                } if search_mode else {},
+                triggered_by="manual",
+                finished_at=now,
+            )
+
+    else:
+        # Sem manual_log_id: decide se é Auto (Beat) ou Manual (chamada direta/CLI)
+        is_manual = search_mode is not None
+
+        if is_manual:
+            ERPSyncLog.objects.create(
+                sync_date=target_date,
+                branch_ids=branch_ids_str,
+                status=final_status,
+                orders_fetched=len(orders),
+                orders_created=stats["created"],
+                orders_updated=stats["updated"],
+                orders_errors=stats["errors"],
+                search_mode=search_mode,
+                search_filters={
+                    "begin_date": begin_date,
+                    "end_date": end_date,
+                    "date_type": date_type,
+                    "order_id": order_id,
+                    "prenote_id": prenote_id,
+                },
+                triggered_by="manual",
+                finished_at=now,
+            )
+        else:
+            # Beat automático: uma linha por dia, atualizada no lugar
             ERPSyncLog.objects.update_or_create(
                 sync_date=target_date,
                 branch_ids=branch_ids_str,
+                triggered_by="auto",
                 defaults={
                     "status": final_status,
                     "orders_fetched": len(orders),
                     "orders_created": stats["created"],
                     "orders_updated": stats["updated"],
                     "orders_errors": stats["errors"],
+                    "search_mode": "date",
+                    "search_filters": {},
                     "finished_at": now,
                 },
             )
-    else:
-        # Beat automático: uma linha por dia, atualizada no lugar
-        ERPSyncLog.objects.update_or_create(
-            sync_date=target_date,
-            branch_ids=branch_ids_str,
-            defaults={
-                "status": final_status,
-                "orders_fetched": len(orders),
-                "orders_created": stats["created"],
-                "orders_updated": stats["updated"],
-                "orders_errors": stats["errors"],
-                "finished_at": now,
-            },
-        )
+
 
     logger.info(
         "ERP Sync: concluído — data=%s pedidos=%d criados=%d "
