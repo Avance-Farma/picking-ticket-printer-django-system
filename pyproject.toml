@@ -145,7 +145,9 @@ env = [
     "REDIS_URL=",                       # Disable Redis in tests
     "POSTGRES_DB=",                     # Disable Postgres logic in tests
     "CELERY_BROKER_URL=memory://",      # Use memory broker for Celery in tests
+    "CELERY_TASK_ALWAYS_EAGER=True",    # Run tasks synchronously in tests
 ]
+
 
 # Custom markers
 markers = [
