@@ -197,14 +197,23 @@
                 </div>
 
                 <!-- Inputs dinâmicos: Data -->
-                <div id="mode-date-inputs" class="md:col-span-6 grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Início</label>
-                        <input type="date" id="sync-begin-date" class="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm text-slate-700 bg-white focus:ring-2 focus:ring-violet-400 outline-none" />
-                    </div>
-                    <div>
-                        <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Fim</label>
-                        <input type="date" id="sync-end-date" class="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm text-slate-700 bg-white focus:ring-2 focus:ring-violet-400 outline-none" />
+                <div id="mode-date-inputs" class="md:col-span-6">
+                    <div class="grid grid-cols-5 gap-3">
+                        <div class="col-span-2">
+                            <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Início</label>
+                            <input type="date" id="sync-begin-date" class="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm text-slate-700 bg-white focus:ring-2 focus:ring-violet-400 outline-none" />
+                        </div>
+                        <div class="col-span-2">
+                            <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Fim</label>
+                            <input type="date" id="sync-end-date" class="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm text-slate-700 bg-white focus:ring-2 focus:ring-violet-400 outline-none" />
+                        </div>
+                        <div class="col-span-1">
+                            <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Tipo</label>
+                            <select id="sync-date-type" class="w-full px-2 py-2 rounded-lg border border-slate-200 text-sm text-slate-700 bg-white focus:ring-2 focus:ring-violet-400 outline-none">
+                                <option value="1">Pedido</option>
+                                <option value="2">Pré Nota</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
 
@@ -230,25 +239,21 @@
                 </div>
             </div>
 
-            <!-- Opções Extras (Branch Filter) -->
-            <div class="mt-4 flex items-center gap-4 border-t border-slate-100 pt-4">
+            <!-- Filial -->
+            <div class="mt-4 flex flex-col gap-3 border-t border-slate-100 pt-4">
                 <div class="flex items-center gap-2">
-                    <input type="checkbox" id="sync-all-branches" checked onchange="toggleBranchSelection()" class="w-4 h-4 text-violet-600 border-slate-300 rounded focus:ring-violet-500" />
-                    <label for="sync-all-branches" class="text-xs font-medium text-slate-600 cursor-pointer">Sincronizar todas as filiais (27, 19)</label>
+                    <span class="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Filial padrão:</span>
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">27 — RJ</span>
                 </div>
-                <div id="branch-selection-container" class="hidden flex items-center gap-3">
-                    <span class="text-[10px] text-slate-400 font-bold uppercase">Filiais:</span>
-                    <label class="inline-flex items-center gap-1.5 cursor-pointer">
-                        <input type="checkbox" class="branch-check w-3.5 h-3.5" value="27" checked />
-                        <span class="text-xs text-slate-600">27 (RJ)</span>
-                    </label>
-                    <label class="inline-flex items-center gap-1.5 cursor-pointer">
-                        <input type="checkbox" class="branch-check w-3.5 h-3.5" value="19" />
-                        <span class="text-xs text-slate-600">19 (ES)</span>
+                <div class="flex items-center gap-3">
+                    <input type="checkbox" id="sync-include-es" class="w-4 h-4 text-violet-600 border-slate-300 rounded focus:ring-violet-500" />
+                    <label for="sync-include-es" class="text-xs font-medium text-slate-600 cursor-pointer">
+                        Incluir também a filial <strong class="text-slate-800">19 — ES</strong> <span class="text-slate-400">(separada da RJ)</span>
                     </label>
                 </div>
             </div>
         </div>
+
 
         <div id="resync-toast" class="hidden mb-6 p-4 rounded-xl border text-sm font-medium shadow-sm animate-pulse"></div>
 
@@ -534,12 +539,7 @@
         else if (mode === 'prenote') prenoteInputs.classList.remove('hidden');
     }
 
-    function toggleBranchSelection() {
-        const allChecked = document.getElementById('sync-all-branches').checked;
-        const container = document.getElementById('branch-selection-container');
-        if (allChecked) container.classList.add('hidden');
-        else container.classList.remove('hidden');
-    }
+
 
     function getCsrfToken() {
         const el = document.querySelector('[name=csrfmiddlewaretoken]');
@@ -585,6 +585,7 @@
         if (mode === 'date') {
             payload.begin_date = document.getElementById('sync-begin-date').value;
             payload.end_date = document.getElementById('sync-end-date').value;
+            payload.date_type = parseInt(document.getElementById('sync-date-type').value);
         } else if (mode === 'order') {
             payload.order_id = document.getElementById('sync-order-id').value;
             if (!payload.order_id) return alert('Informe o ID do pedido.');
@@ -593,13 +594,10 @@
             if (!payload.prenote_id) return alert('Informe o ID do picking.');
         }
 
-        // Branch filter
-        const allBranches = document.getElementById('sync-all-branches').checked;
-        if (!allBranches) {
-            const selected = Array.from(document.querySelectorAll('.branch-check:checked')).map(cb => parseInt(cb.value));
-            if (selected.length === 0) return alert('Selecione ao menos uma filial.');
-            payload.branch_ids = selected;
-        }
+        // Branch: padrão = 27 (RJ). Se checkbox ES marcado, inclui 19 também.
+        const includeES = document.getElementById('sync-include-es').checked;
+        payload.branch_ids = includeES ? [27, 19] : [27];
+
 
         setResyncState('loading');
         showResyncToast('loading', `
