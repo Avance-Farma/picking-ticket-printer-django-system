@@ -115,7 +115,7 @@ class ERPSyncTriggerView(APIView):
 
         # 2. Preparação do Log
         effective_branch_ids = branch_ids_override or getattr(
-            settings, "ERP_BRANCH_IDS", [27, 19]
+            settings, "ERP_BRANCH_IDS", [27]
         )
         branch_ids_str = ",".join(str(b) for b in effective_branch_ids)
 
