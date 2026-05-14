@@ -106,3 +106,44 @@ class TestERPVolumePushService:
             ERPVolumePushService.push_volume(order_number="ABC-123", volume=1)
 
         assert "order_number inválido para conversão" in str(exc.value)
+
+    def test_push_volume_erp_refused_with_200_ok(self, mock_auth_token, mock_requests_put, settings):
+        """[RED] Testa se levanta ERPSyncError quando o ERP retorna 200 OK mas com success: false no JSON"""
+        settings.ERP_API_BASE_URL = "http://fake-erp.com"
+        
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        # Simula o payload relatado pelo usuário
+        mock_resp.json.return_value = [
+            {
+                "originalOrderId": 12345,
+                "volume": 3,
+                "success": False,
+                "message": "ERP recusou a atualização"
+            }
+        ]
+        mock_requests_put.return_value = mock_resp
+
+        with pytest.raises(ERPSyncError) as exc:
+            ERPVolumePushService.push_volume(order_number="12345", volume=3)
+
+        assert "O ERP recusou a atualização: ERP recusou a atualização" in str(exc.value)
+
+    def test_push_volume_erp_success_with_json_body(self, mock_auth_token, mock_requests_put, settings):
+        """Garante que success: true no JSON não levanta erro"""
+        settings.ERP_API_BASE_URL = "http://fake-erp.com"
+        
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        mock_resp.json.return_value = [
+            {
+                "originalOrderId": 12345,
+                "volume": 3,
+                "success": True,
+                "message": "Updated successfully."
+            }
+        ]
+        mock_requests_put.return_value = mock_resp
+
+        # Não deve levantar exceção
+        ERPVolumePushService.push_volume(order_number="12345", volume=3)
