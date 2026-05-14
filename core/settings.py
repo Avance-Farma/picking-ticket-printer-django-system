@@ -323,7 +323,7 @@ ERP_API_PASSWORD = os.getenv("ERP_API_PASSWORD", "@@polmsgtiodp%%%348*op3!!gflop
 # Para alterar via env: ERP_BRANCH_IDS=27  ou  ERP_BRANCH_IDS=27,19
 _branch_ids_raw = os.getenv("ERP_BRANCH_IDS", "").strip()
 _branch_ids_parsed = [int(b.strip()) for b in _branch_ids_raw.split(",") if b.strip()]
-ERP_BRANCH_IDS = _branch_ids_parsed if _branch_ids_parsed else [27]
+ERP_BRANCH_IDS = _branch_ids_parsed if _branch_ids_parsed else [27]  # Padrão: apenas RJ
 
 # Intervalo em minutos (usado tanto pelo Beat quanto para referência)
 ERP_SYNC_INTERVAL_MINUTES = _ERP_SYNC_INTERVAL_MINUTES
