@@ -939,7 +939,16 @@
 
     function renderModalContent(d) {
         document.getElementById("modal-title").textContent = "Picking " + d.picking + " — Pedido " + d.order_number;
-        document.getElementById("modal-subtitle").innerHTML = statusBadgeHtml(d.status);
+
+        // Badge do ERP para o subtítulo
+        let erpBadge = "";
+        if (d.erp_volume_sync_status === "sent") {
+            erpBadge = `<span style="margin-left:.5rem;padding:.1rem .4rem;border-radius:4px;font-size:.65rem;font-weight:700;background:#ecfdf5;color:#059669;border:1px solid #10b981;vertical-align:middle">✓ ERP OK</span>`;
+        } else if (d.erp_volume_sync_status === "error") {
+            erpBadge = `<span style="margin-left:.5rem;padding:.1rem .4rem;border-radius:4px;font-size:.65rem;font-weight:700;background:#fff1f2;color:#e11d48;border:1px solid #f43f5e;vertical-align:middle">⚠ FALHA ERP</span>`;
+        }
+
+        document.getElementById("modal-subtitle").innerHTML = statusBadgeHtml(d.status) + erpBadge;
 
         const addr = d.customer?.address;
         const endereco = addr
@@ -970,6 +979,15 @@
         }
 
         document.getElementById("modal-body").innerHTML =
+            (d.erp_volume_sync_status === 'error' ? 
+                `<div style="margin-bottom:1.25rem;padding:.75rem 1rem;background:#fff1f2;border:1px solid #fecaca;border-radius:.75rem;color:#b91c1c;font-size:.875rem;animation:slideUp .2s ease-out">
+                    <div style="font-weight:700;margin-bottom:.25rem;display:flex;align-items:center;gap:.5rem">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                        Erro na Sincronização ERP
+                    </div>
+                    ${d.erp_volume_sync_error || "Erro desconhecido."}
+                </div>` : ""
+            ) +
             mSection("Picking & Pedido", [
                 mRow("Picking", d.picking), mRow("Nº Pedido", d.order_number),
                 mRow("Rota", d.order_route), mRow("NF", d.invoice_number),

@@ -87,6 +87,8 @@ class OrderDetailSerializer(serializers.ModelSerializer):
             "pending_payment",
             "net_weight",
             "total_volumes",
+            "erp_volume_sync_status",
+            "erp_volume_sync_error",
             "confirmed_at",
             "shipped_at",
             "created_at",
