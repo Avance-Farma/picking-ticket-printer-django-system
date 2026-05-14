@@ -64,6 +64,19 @@ class ERPVolumePushService:
                 resp = requests.put(url, json=payload, headers=headers, timeout=30)
 
             resp.raise_for_status()
+
+            # Validação do corpo da resposta (sucesso lógico)
+            try:
+                response_data = resp.json()
+                if isinstance(response_data, list) and len(response_data) > 0:
+                    item = response_data[0]
+                    if item.get("success") is False:
+                        message = item.get("message", "Erro desconhecido retornado pelo ERP.")
+                        raise ERPSyncError(f"O ERP recusou a atualização: {message}")
+            except (ValueError, requests.exceptions.JSONDecodeError):
+                # Caso não seja JSON, confiamos apenas no HTTP status (legado)
+                pass
+
             logger.info("ERP Push: Volume do pedido %s atualizado com sucesso no ERP.", order_number)
 
         except requests.exceptions.RequestException as exc:

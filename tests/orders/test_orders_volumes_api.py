@@ -140,17 +140,17 @@ class TestConfirmShippedAPI:
         order.refresh_from_db()
         assert order.status == "shipped"
 
-    def test_confirm_shipped_api_warning_on_push_failure(self, auth_client: APIClient, mock_erp_task_delay):
-        """RED: Response deve conter erp_warning se o enfileiramento falhar."""
+    def test_confirm_shipped_no_longer_pushes_to_erp(self, auth_client: APIClient, mock_erp_task_delay):
+        """Fix #2: mark_shipped não deve disparar push ao ERP."""
         order = OrderFactory(status="in_progress", total_volumes=1)
         url = reverse("api-confirm-shipped", kwargs={"pk": order.pk})
-        mock_erp_task_delay.side_effect = Exception("Redis down")
         
         response = auth_client.post(url, format="json")
         
         assert response.status_code == 200
         assert response.data["success"] is True
-        assert response.data["erp_warning"] is not None
+        assert response.data.get("erp_warning") is None
+        mock_erp_task_delay.assert_not_called()
 
     def test_confirm_shipped_not_found(self, auth_client: APIClient):
         url = reverse("api-confirm-shipped", kwargs={"pk": 999999})
