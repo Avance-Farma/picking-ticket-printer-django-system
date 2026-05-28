@@ -1,5 +1,7 @@
 import pytest
+
 from tests.factories import OrderFactory
+
 
 @pytest.mark.django_db
 class TestOrderERPSyncFields:

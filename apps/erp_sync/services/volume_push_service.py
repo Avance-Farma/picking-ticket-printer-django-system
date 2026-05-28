@@ -11,10 +11,12 @@ Headers:
 """
 
 import logging
+
 import requests
 from django.conf import settings
-from apps.erp_sync.services.auth_service import ERPAuthService
+
 from apps.erp_sync.exceptions import ERPSyncError
+from apps.erp_sync.services.auth_service import ERPAuthService
 
 logger = logging.getLogger(__name__)
 

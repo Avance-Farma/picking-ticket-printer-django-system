@@ -14,7 +14,7 @@ Configuração (via Django settings):
 """
 
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import requests
 from django.conf import settings
@@ -42,7 +42,7 @@ def _parse_expire_date(expire_date_str: str | None) -> datetime | None:
     for fmt in ("%d/%m/%Y %H:%M:%S", "%d/%m/%Y %H:%M"):
         try:
             naive = datetime.strptime(expire_date_str.strip(), fmt)
-            return naive.replace(tzinfo=timezone.utc)
+            return naive.replace(tzinfo=UTC)
         except ValueError:
             continue
     logger.warning("ERP Auth: formato de expireDate desconhecido: %r", expire_date_str)
@@ -91,7 +91,7 @@ class ERPAuthService:
         token = data["token"]
         refresh_token = data["refreshToken"]
         expires_at = _parse_expire_date(data.get("expireDate")) or (
-            datetime.now(timezone.utc) + timedelta(hours=1)
+            datetime.now(UTC) + timedelta(hours=1)
         )
 
         token_data = {
@@ -101,7 +101,7 @@ class ERPAuthService:
         }
 
         # Salva no cache até 30s antes da expiração
-        ttl = max(int((expires_at - datetime.now(timezone.utc)).total_seconds()) - 30, 60)
+        ttl = max(int((expires_at - datetime.now(UTC)).total_seconds()) - 30, 60)
         cache.set(CACHE_KEY, token_data, timeout=ttl)
 
         logger.info(
@@ -135,7 +135,7 @@ class ERPAuthService:
         new_token = data["token"]
         new_refresh = data["refreshToken"]
         expires_at = _parse_expire_date(data.get("expireDate")) or (
-            datetime.now(timezone.utc) + timedelta(hours=1)
+            datetime.now(UTC) + timedelta(hours=1)
         )
 
         token_data = {
@@ -144,7 +144,7 @@ class ERPAuthService:
             "expires_at": expires_at.isoformat(),
         }
 
-        ttl = max(int((expires_at - datetime.now(timezone.utc)).total_seconds()) - 30, 60)
+        ttl = max(int((expires_at - datetime.now(UTC)).total_seconds()) - 30, 60)
         cache.set(CACHE_KEY, token_data, timeout=ttl)
 
         logger.info(
@@ -174,7 +174,7 @@ class ERPAuthService:
             return cls.login()["token"]
 
         expires_at = datetime.fromisoformat(token_data["expires_at"])
-        seconds_left = (expires_at - datetime.now(timezone.utc)).total_seconds()
+        seconds_left = (expires_at - datetime.now(UTC)).total_seconds()
 
         if seconds_left < TOKEN_REFRESH_MARGIN_SECONDS:
             logger.info(

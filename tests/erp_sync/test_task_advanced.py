@@ -1,8 +1,10 @@
+from unittest.mock import patch
+
 import pytest
-from unittest.mock import patch, Mock
-from apps.erp_sync.tasks import sync_erp_orders_task
+
 from apps.erp_sync.models import ERPSyncLog
-from datetime import date
+from apps.erp_sync.tasks import sync_erp_orders_task
+
 
 @pytest.mark.django_db
 class TestSyncERPOrdersTaskAdvanced:

@@ -1,6 +1,9 @@
-import pytest
 from datetime import date
+
+import pytest
+
 from apps.erp_sync.models import ERPSyncLog
+
 
 @pytest.mark.django_db
 class TestERPSyncLog:

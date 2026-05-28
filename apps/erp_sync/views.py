@@ -10,9 +10,6 @@ ERPSyncStatusView   — GET: retorna o status atual de um ERPSyncLog pelo ID.
 
 import logging
 
-from django.contrib.auth.mixins import (
-    LoginRequiredMixin,
-)
 from drf_spectacular.utils import extend_schema, inline_serializer
 from rest_framework import serializers
 from rest_framework.permissions import IsAuthenticated
@@ -66,9 +63,11 @@ class ERPSyncTriggerView(APIView):
         },
     )
     def post(self, request, *args, **kwargs):
-        from apps.erp_sync.tasks import sync_erp_orders_task
-        from django.conf import settings
         from datetime import date
+
+        from django.conf import settings
+
+        from apps.erp_sync.tasks import sync_erp_orders_task
 
         data = request.data
         search_mode = data.get("search_mode")
@@ -258,8 +257,9 @@ class ERPSyncHeartbeatView(APIView):
         }
     )
     def get(self, request, *args, **kwargs):
-        from django.db.models import Sum
         from datetime import timedelta
+
+        from django.db.models import Sum
         from django.utils import timezone
 
         # 1. Busca o último log finalizado
