@@ -1,9 +1,10 @@
+from unittest.mock import MagicMock, patch
+
 import pytest
 import requests
-from unittest.mock import patch, MagicMock
 
-from apps.erp_sync.services.volume_push_service import ERPVolumePushService
 from apps.erp_sync.exceptions import ERPSyncError
+from apps.erp_sync.services.volume_push_service import ERPVolumePushService
 
 
 @pytest.fixture

@@ -4,8 +4,8 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.contrib.auth import views as auth_views
 from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
 from django.urls import include, path
+from django.views.decorators.csrf import csrf_exempt
 from drf_spectacular.views import (
     SpectacularAPIView,
     SpectacularRedocView,

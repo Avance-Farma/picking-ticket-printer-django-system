@@ -1,6 +1,6 @@
-import pytest
-
 from unittest.mock import patch
+
+import pytest
 
 from apps.orders.models import Order
 from apps.orders.services.volume_service import VolumeService
@@ -147,8 +147,9 @@ class TestVolumeService:
 
     def test_process_and_print_preserves_existing_confirmed_at(self):
         """RED: Se confirmed_at já existe, process_and_print NÃO sobrescreve."""
-        from django.utils import timezone as tz
         import datetime
+
+        from django.utils import timezone as tz
 
         original_time = tz.now() - datetime.timedelta(hours=1)
         order = OrderFactory(status="confirmed", confirmed_at=original_time)

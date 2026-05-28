@@ -1,9 +1,11 @@
+from unittest.mock import patch
+
 import pytest
-from rest_framework.test import APIClient
 from django.contrib.auth.models import User
+from rest_framework.test import APIClient
+
 from apps.erp_sync.models import ERPSyncLog
 
-from unittest.mock import patch
 
 @pytest.fixture
 def auth_client():

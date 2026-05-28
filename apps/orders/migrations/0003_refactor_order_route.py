@@ -1,4 +1,4 @@
-from django.db import migrations, models
+from django.db import migrations
 
 
 def migrate_routes_to_deliveries(apps, schema_editor):

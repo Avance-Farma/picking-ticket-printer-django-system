@@ -164,7 +164,14 @@ class PDFExtractorTester:
             print(f"  {k}: {v}")
 
 
-print("Testing XLS...")
-ExcelExtractorTester("data/0442739.xls").read()
-print("Testing PDF...")
-PDFExtractorTester("data/0442739.pdf").read()
+if __name__ == "__main__":
+    print("Testing XLS...")
+    try:
+        ExcelExtractorTester("data/0442739.xls").read()
+    except FileNotFoundError:
+        print("XLS test file not found")
+    print("Testing PDF...")
+    try:
+        PDFExtractorTester("data/0442739.pdf").read()
+    except FileNotFoundError:
+        print("PDF test file not found")

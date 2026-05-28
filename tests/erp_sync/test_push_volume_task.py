@@ -1,8 +1,11 @@
+from unittest.mock import MagicMock, patch
+
 import pytest
-from unittest.mock import patch, MagicMock
-from apps.erp_sync.tasks import _push_volume_logic
+
 from apps.erp_sync.exceptions import ERPSyncError
+from apps.erp_sync.tasks import _push_volume_logic
 from tests.factories import OrderFactory
+
 
 @pytest.mark.django_db
 class TestPushVolumeTask:

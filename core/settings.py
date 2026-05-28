@@ -289,7 +289,7 @@ SIMPLE_JWT = {
 SPECTACULAR_SETTINGS = {
     "TITLE": "Picking Ticket Printer API",
     "DESCRIPTION": "API for Managing Logistics Orders and Label Printing",
-    "VERSION": "1.0.0",
+    "VERSION": "2.3.3",
     "SERVE_INCLUDE_SCHEMA": False,
 }
 
