@@ -1,146 +1,90 @@
 {% extends 'base.html' %}
 
-{% block title %}Upload de Pedido - Expedição e Impressão ZPL{% endblock %}
+{% block title %}Central de Ingestão - Expedição e Impressão ZPL{% endblock %}
+
+{% block header %}
+<nav class="bg-slate-800 text-white flex items-center justify-between px-6 h-[52px] sticky top-0 z-50 shadow-md">
+    <div class="text-base font-bold tracking-tight flex items-center gap-2">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <rect x="2" y="3" width="20" height="14" rx="2" />
+            <path d="M8 21h8M12 17v4" />
+        </svg>
+        Central de Ingestão
+    </div>
+    <div class="flex items-center gap-2 text-[13px]">
+        <a href="{% url 'orders-list' %}"
+            class="flex items-center gap-1.5 bg-white/10 border border-white/15 rounded-full px-3 py-1 font-medium hover:bg-white/20 transition-colors no-underline text-white">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                <polyline points="9 22 9 12 15 12 15 22" />
+            </svg>
+            Início / Pickings
+        </a>
+        <a href="/admin/" title="Django Admin"
+            class="flex items-center gap-1.5 bg-white/10 border border-white/15 rounded-full px-3 py-1 font-medium hover:bg-amber-500/80 transition-colors no-underline text-white">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+            </svg>
+            Admin
+        </a>
+        <div class="w-px h-5 bg-white/20 mx-1"></div>
+        <form action="{% url 'logout' %}" method="post" class="inline m-0 p-0">
+            {% csrf_token %}
+            <button type="submit" title="Sair do Sistema"
+                class="flex items-center gap-1.5 bg-red-500/80 border-red-500/30 rounded-full px-3 py-1 font-medium hover:bg-red-600 transition-colors text-white cursor-pointer h-full border-0">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                    <polyline points="16 17 21 12 16 7" />
+                    <line x1="21" y1="12" x2="9" y2="12" />
+                </svg>
+                Sair
+            </button>
+        </form>
+    </div>
+</nav>
+{% endblock %}
 
 {% block content %}
 <div class="max-w-3xl mx-auto w-full">
+    <!-- Cabeçalho -->
     <div class="text-center mb-8">
-        <h1 class="text-3xl font-bold text-slate-800 m-0">Ingestão de Arquivos</h1>
+        <h1 class="text-3xl font-bold text-slate-800 m-0">Central de Ingestão</h1>
         <p class="text-slate-500 mt-2">
-            Faça o upload de múltiplos pedidos (.xls, .xlsx, .pdf, .docx, .doc)
+            Gerencie a sincronização de pedidos via API ERP ou realize importações de planilhas de forma manual.
         </p>
     </div>
 
-    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-8 mb-8">
-        <!-- Messages will be injected here -->
-        <div id="message-container"></div>
-
-        <form id="upload-form" enctype="multipart/form-data">
-            {% csrf_token %}
-            <div class="flex flex-col gap-4 mb-4">
-                <label for="import_files" class="font-medium text-slate-800">Selecione os arquivos:</label>
-                <input type="file" name="import_files" id="import_files" accept=".xls,.xlsx,.pdf,.doc,.docx" multiple required 
-                    class="p-3 border border-dashed border-slate-300 rounded-lg text-base outline-none transition-colors bg-slate-50 cursor-pointer focus:border-blue-600 focus:bg-blue-50 hover:border-blue-600 hover:bg-blue-50 w-full" />
-                <button type="submit" id="btn-submit" 
-                    class="bg-blue-600 text-white border-0 px-6 py-3 rounded-lg text-base font-medium cursor-pointer transition-colors hover:bg-blue-700 self-start">
-                    Processar Arquivos
-                </button>
-            </div>
-        </form>
-
-        <div class="hidden mt-6 bg-slate-50 rounded-lg p-6 border border-slate-200" id="progress-container">
-            <h3 class="m-0 mb-2 text-base font-semibold text-slate-800">Processando Ingestão...</h3>
-            <div class="w-full h-3 bg-slate-200 rounded-full overflow-hidden mt-2">
-                <div class="h-full bg-blue-600 w-0 transition-all duration-300 ease-out" id="progress-bar"></div>
-            </div>
-            <div class="text-sm font-medium text-slate-500 mt-2 flex justify-between">
-                <span id="progress-count">0 / 0 planilhas processadas</span>
-                <span id="progress-status" class="font-medium">Iniciando...</span>
-            </div>
-            <div id="progress-errors" class="mt-4 text-red-700 text-sm hidden">
-            </div>
-        </div>
-
-        <div class="mt-8 border-t border-slate-200 pt-4">
-            <a href="{% url 'orders-list' %}" class="text-blue-600 no-underline font-medium mt-4 inline-block hover:underline">
-                &larr; Voltar para Consulta e Impressão
-            </a>
-        </div>
-    </div>
-
-    <!-- Histórico Recente -->
-    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-8 mt-8">
-        <h3 class="mt-0 mb-6 text-lg font-bold text-slate-800">Últimos Processamentos em Lote</h3>
-        {% if recent_batches %}
-        <div class="overflow-x-auto w-full">
-            <table class="w-full border-collapse text-sm">
-                <thead>
-                    <tr>
-                        <th class="text-left py-3 px-4 border-b border-slate-200 bg-slate-50 font-medium text-slate-500 whitespace-nowrap">ID Lote</th>
-                        <th class="text-left py-3 px-4 border-b border-slate-200 bg-slate-50 font-medium text-slate-500 whitespace-nowrap">Data/Hora</th>
-                        <th class="text-left py-3 px-4 border-b border-slate-200 bg-slate-50 font-medium text-slate-500 whitespace-nowrap">Progresso</th>
-                        <th class="text-left py-3 px-4 border-b border-slate-200 bg-slate-50 font-medium text-slate-500 whitespace-nowrap">Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for batch in recent_batches %}
-                    <tr class="hover:bg-slate-50 transition-colors">
-                        <td class="py-3 px-4 border-b border-slate-200 font-medium text-slate-800 whitespace-nowrap">#{{ batch.id }}</td>
-                        <td class="py-3 px-4 border-b border-slate-200 text-slate-600 whitespace-nowrap">{{ batch.created_at|date:"d/m/Y H:i" }}</td>
-                        <td class="py-3 px-4 border-b border-slate-200 text-slate-600 whitespace-nowrap">{{ batch.processed_files }} / {{ batch.total_files }}</td>
-                        <td class="py-3 px-4 border-b border-slate-200 whitespace-nowrap">
-                            {% if batch.status == 'processing' %}
-                            <span class="px-2.5 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">Processando</span>
-                            {% elif batch.status == 'completed' %}
-                            <span class="px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">Concluído</span>
-                            {% else %}
-                            <span class="px-2.5 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">Com Erros</span>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-        {% else %}
-        <p class="text-slate-500 text-sm m-0">Nenhum lote importado recentemente.</p>
-        {% endif %}
-    </div>
-
-    <!-- Pedidos Recentes -->
-    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-8 mt-8">
-        <h3 class="mt-0 mb-6 text-lg font-bold text-slate-800">Últimos Pedidos Importados</h3>
-        {% if recent_orders %}
-        <div class="overflow-x-auto w-full">
-            <table class="w-full border-collapse text-sm">
-                <thead>
-                    <tr>
-                        <th class="text-left py-3 px-4 border-b border-slate-200 bg-slate-50 font-medium text-slate-500 whitespace-nowrap">Pedido</th>
-                        <th class="text-left py-3 px-4 border-b border-slate-200 bg-slate-50 font-medium text-slate-500 whitespace-nowrap">Picking</th>
-                        <th class="text-left py-3 px-4 border-b border-slate-200 bg-slate-50 font-medium text-slate-500 whitespace-nowrap">Cliente</th>
-                        <th class="text-left py-3 px-4 border-b border-slate-200 bg-slate-50 font-medium text-slate-500 whitespace-nowrap">Origem</th>
-                        <th class="text-left py-3 px-4 border-b border-slate-200 bg-slate-50 font-medium text-slate-500 whitespace-nowrap">Data de Importação</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for order in recent_orders %}
-                    <tr class="hover:bg-slate-50 transition-colors">
-                        <td class="py-3 px-4 border-b border-slate-200 font-medium text-slate-800 whitespace-nowrap">{{ order.order_number }}</td>
-                        <td class="py-3 px-4 border-b border-slate-200 text-slate-600 whitespace-nowrap">{{ order.picking }}</td>
-                        <td class="py-3 px-4 border-b border-slate-200 text-slate-600 whitespace-nowrap">{{ order.customer.name }}</td>
-                        <td class="py-3 px-4 border-b border-slate-200 whitespace-nowrap">
-                            {% if order.import_source == 'api' %}
-                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-violet-100 text-violet-800 border border-violet-200">
-                                <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-                                API ERP
-                            </span>
-                            {% else %}
-                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
-                                <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                                Planilha
-                            </span>
-                            {% endif %}
-                        </td>
-                        <td class="py-3 px-4 border-b border-slate-200 text-slate-600 whitespace-nowrap">{{ order.created_at|date:"d/m/Y H:i" }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-        {% else %}
-        <p class="text-slate-500 text-sm m-0">Nenhum pedido encontrado no momento.</p>
-        {% endif %}
+    <!-- Navegação de Abas -->
+    <div class="mb-8 border-b border-slate-200">
+        <nav class="flex gap-6" aria-label="Abas de Ingestão">
+            <button id="tab-sync" onclick="switchTab('sync')" 
+                class="py-4 px-1 inline-flex items-center gap-2 border-b-2 border-violet-600 font-semibold text-sm text-violet-600 whitespace-nowrap outline-none transition-all cursor-pointer">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                </svg>
+                Sincronização API ERP
+            </button>
+            <button id="tab-manual" onclick="switchTab('manual')" 
+                class="py-4 px-1 inline-flex items-center gap-2 border-b-2 border-transparent font-medium text-sm text-slate-500 hover:text-slate-700 hover:border-slate-300 whitespace-nowrap outline-none transition-all cursor-pointer">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                Importação de Arquivos
+            </button>
+        </nav>
     </div>
 </div>
 
+<!-- ABA 1: SINCRONIZAÇÃO API ERP -->
+<div id="content-sync" class="block">
     <!-- Dashboard de Saúde da API ERP (Heartbeat) -->
-    <div id="erp-heartbeat-card" class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-8 mt-8 hidden transition-all duration-500 opacity-0 transform translate-y-4">
+    <div id="erp-heartbeat-card" class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-8 mt-4">
         <div class="flex items-center justify-between mb-6">
             <div class="flex items-center gap-3">
                 <div id="heartbeat-indicator" class="w-3 h-3 rounded-full bg-slate-300"></div>
                 <h3 class="m-0 text-lg font-bold text-slate-800">Status da API ERP</h3>
             </div>
-            <div id="heartbeat-badge" class="px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
+            <div id="heartbeat-badge" class="px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-slate-100 text-slate-500">
                 Carregando...
             </div>
         </div>
@@ -173,8 +117,8 @@
         </div>
     </div>
 
-    <!-- Histórico de Sincronização via API ERP -->
-    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-8 mt-8">
+    <!-- Histórico de Sincronização via API ERP e Controles -->
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-8">
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
             <div class="flex items-center gap-3">
                 <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-violet-100">
@@ -254,12 +198,12 @@
             </div>
         </div>
 
-
         <div id="resync-toast" class="hidden mb-6 p-4 rounded-xl border text-sm font-medium shadow-sm animate-pulse"></div>
 
+        <h3 class="mt-8 mb-4 text-base font-bold text-slate-800">Histórico de Sincronizações</h3>
         {% if recent_sync_logs %}
         <div class="overflow-x-auto w-full">
-            <table class="w-full border-collapse text-sm">
+            <table id="sync-history-table" class="w-full border-collapse text-sm">
                 <thead>
                     <tr>
                         <th class="text-left py-3 px-4 border-b border-slate-200 bg-slate-50 font-medium text-slate-500 whitespace-nowrap">Data Sincronizada</th>
@@ -335,12 +279,158 @@
         </p>
         {% endif %}
     </div>
+</div>
 
+<!-- ABA 2: IMPORTAÇÃO MANUAL -->
+<div id="content-manual" class="hidden">
+    <div class="max-w-3xl mx-auto w-full mt-4">
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-8 mb-8">
+            <div id="message-container"></div>
 
+            <form id="upload-form" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="flex flex-col gap-4 mb-4">
+                    <label for="import_files" class="font-medium text-slate-800">Selecione os arquivos:</label>
+                    <input type="file" name="import_files" id="import_files" accept=".xls,.xlsx,.pdf,.doc,.docx" multiple required 
+                        class="p-3 border border-dashed border-slate-300 rounded-lg text-base outline-none transition-colors bg-slate-50 cursor-pointer focus:border-blue-600 focus:bg-blue-50 hover:border-blue-600 hover:bg-blue-50 w-full" />
+                    <button type="submit" id="btn-submit" 
+                        class="bg-blue-600 text-white border-0 px-6 py-3 rounded-lg text-base font-medium cursor-pointer transition-colors hover:bg-blue-700 self-start">
+                        Processar Arquivos
+                    </button>
+                </div>
+            </form>
+
+            <div class="hidden mt-6 bg-slate-50 rounded-lg p-6 border border-slate-200" id="progress-container">
+                <h3 class="m-0 mb-2 text-base font-semibold text-slate-800">Processando Ingestão...</h3>
+                <div class="w-full h-3 bg-slate-200 rounded-full overflow-hidden mt-2">
+                    <div class="h-full bg-blue-600 w-0 transition-all duration-300 ease-out" id="progress-bar"></div>
+                </div>
+                <div class="text-sm font-medium text-slate-500 mt-2 flex justify-between">
+                    <span id="progress-count">0 / 0 planilhas processadas</span>
+                    <span id="progress-status" class="font-medium">Iniciando...</span>
+                </div>
+                <div id="progress-errors" class="mt-4 text-red-700 text-sm hidden">
+                </div>
+            </div>
+
+            <div class="mt-8 border-t border-slate-200 pt-4">
+                <a href="{% url 'orders-list' %}" class="text-blue-600 no-underline font-medium mt-4 inline-block hover:underline">
+                    &larr; Voltar para Consulta e Impressão
+                </a>
+            </div>
+        </div>
+
+        <!-- Histórico Recente -->
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-8">
+            <h3 class="mt-0 mb-6 text-lg font-bold text-slate-800">Últimos Processamentos em Lote</h3>
+            {% if recent_batches %}
+            <div class="overflow-x-auto w-full">
+                <table class="w-full border-collapse text-sm">
+                    <thead>
+                        <tr>
+                            <th class="text-left py-3 px-4 border-b border-slate-200 bg-slate-50 font-medium text-slate-500 whitespace-nowrap">ID Lote</th>
+                            <th class="text-left py-3 px-4 border-b border-slate-200 bg-slate-50 font-medium text-slate-500 whitespace-nowrap">Data/Hora</th>
+                            <th class="text-left py-3 px-4 border-b border-slate-200 bg-slate-50 font-medium text-slate-500 whitespace-nowrap">Progresso</th>
+                            <th class="text-left py-3 px-4 border-b border-slate-200 bg-slate-50 font-medium text-slate-500 whitespace-nowrap">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for batch in recent_batches %}
+                        <tr class="hover:bg-slate-50 transition-colors">
+                            <td class="py-3 px-4 border-b border-slate-200 font-medium text-slate-800 whitespace-nowrap">#{{ batch.id }}</td>
+                            <td class="py-3 px-4 border-b border-slate-200 text-slate-600 whitespace-nowrap">{{ batch.created_at|date:"d/m/Y H:i" }}</td>
+                            <td class="py-3 px-4 border-b border-slate-200 text-slate-600 whitespace-nowrap">{{ batch.processed_files }} / {{ batch.total_files }}</td>
+                            <td class="py-3 px-4 border-b border-slate-200 whitespace-nowrap">
+                                {% if batch.status == 'processing' %}
+                                <span class="px-2.5 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">Processando</span>
+                                {% elif batch.status == 'completed' %}
+                                <span class="px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">Concluído</span>
+                                {% else %}
+                                <span class="px-2.5 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">Com Erros</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-slate-500 text-sm m-0">Nenhum lote importado recentemente.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- SEÇÃO COMUM (SEMPRE VISÍVEL NO RODAPÉ): Pedidos Recentes -->
+<div class="max-w-3xl mx-auto w-full">
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-8 mt-8">
+        <h3 id="recent-orders-table" class="mt-0 mb-6 text-lg font-bold text-slate-800">Últimos Pedidos Importados</h3>
+        {% if recent_orders %}
+        <div class="overflow-x-auto w-full">
+            <table class="w-full border-collapse text-sm">
+                <thead>
+                    <tr>
+                        <th class="text-left py-3 px-4 border-b border-slate-200 bg-slate-50 font-medium text-slate-500 whitespace-nowrap">Pedido</th>
+                        <th class="text-left py-3 px-4 border-b border-slate-200 bg-slate-50 font-medium text-slate-500 whitespace-nowrap">Picking</th>
+                        <th class="text-left py-3 px-4 border-b border-slate-200 bg-slate-50 font-medium text-slate-500 whitespace-nowrap">Cliente</th>
+                        <th class="text-left py-3 px-4 border-b border-slate-200 bg-slate-50 font-medium text-slate-500 whitespace-nowrap">Origem</th>
+                        <th class="text-left py-3 px-4 border-b border-slate-200 bg-slate-50 font-medium text-slate-500 whitespace-nowrap">Data de Importação</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for order in recent_orders %}
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="py-3 px-4 border-b border-slate-200 font-medium text-slate-800 whitespace-nowrap">{{ order.order_number }}</td>
+                        <td class="py-3 px-4 border-b border-slate-200 text-slate-600 whitespace-nowrap">{{ order.picking }}</td>
+                        <td class="py-3 px-4 border-b border-slate-200 text-slate-600 whitespace-nowrap">{{ order.customer.name }}</td>
+                        <td class="py-3 px-4 border-b border-slate-200 whitespace-nowrap">
+                            {% if order.import_source == 'api' %}
+                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-violet-100 text-violet-800 border border-violet-200">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                                API ERP
+                            </span>
+                            {% else %}
+                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                                Planilha
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3 px-4 border-b border-slate-200 text-slate-600 whitespace-nowrap">{{ order.created_at|date:"d/m/Y H:i" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-slate-500 text-sm m-0">Nenhum pedido encontrado no momento.</p>
+        {% endif %}
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_scripts %}
 <script>
+    // Controle de Abas
+    function switchTab(tab) {
+        const tabSync = document.getElementById('tab-sync');
+        const tabManual = document.getElementById('tab-manual');
+        const contentSync = document.getElementById('content-sync');
+        const contentManual = document.getElementById('content-manual');
+
+        if (tab === 'sync') {
+            tabSync.className = "py-4 px-1 inline-flex items-center gap-2 border-b-2 border-violet-600 font-semibold text-sm text-violet-600 whitespace-nowrap outline-none transition-all cursor-pointer";
+            tabManual.className = "py-4 px-1 inline-flex items-center gap-2 border-b-2 border-transparent font-medium text-sm text-slate-500 hover:text-slate-700 hover:border-slate-300 whitespace-nowrap outline-none transition-all cursor-pointer";
+            contentSync.className = "block";
+            contentManual.className = "hidden";
+        } else {
+            tabSync.className = "py-4 px-1 inline-flex items-center gap-2 border-b-2 border-transparent font-medium text-sm text-slate-500 hover:text-slate-700 hover:border-slate-300 whitespace-nowrap outline-none transition-all cursor-pointer";
+            tabManual.className = "py-4 px-1 inline-flex items-center gap-2 border-b-2 border-blue-600 font-semibold text-sm text-blue-600 whitespace-nowrap outline-none transition-all cursor-pointer";
+            contentSync.className = "hidden";
+            contentManual.className = "block";
+        }
+    }
+
     const form = document.getElementById('upload-form');
     const btnSubmit = document.getElementById('btn-submit');
     const progressContainer = document.getElementById('progress-container');
@@ -489,12 +579,8 @@
             });
             const data = await resp.json();
 
-            const card = document.getElementById('erp-heartbeat-card');
             const indicator = document.getElementById('heartbeat-indicator');
             const badge = document.getElementById('heartbeat-badge');
-
-            card.classList.remove('hidden');
-            setTimeout(() => card.classList.add('opacity-100', 'translate-y-0'), 100);
 
             if (data.status === 'ok') {
                 indicator.className = 'w-3 h-3 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]';
@@ -539,12 +625,15 @@
         else if (mode === 'prenote') prenoteInputs.classList.remove('hidden');
     }
 
-
-
     function getCsrfToken() {
         const el = document.querySelector('[name=csrfmiddlewaretoken]');
         return el ? el.value : '';
     }
+
+    // Adiciona o elemento de estilo para spin no cabeçalho
+    const style = document.createElement('style');
+    style.textContent = `@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`;
+    document.head.appendChild(style);
 
     function setResyncState(state) {
         const btn = document.getElementById('btn-resync');
@@ -655,12 +744,5 @@
             resyncPollInterval = null;
         }
     }
-
-    // CSS animation para o ícone de spinner (caso precise)
-    const style = document.createElement('style');
-    style.textContent = `@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`;
-    document.head.appendChild(style);
-</script>
-
 </script>
 {% endblock %}

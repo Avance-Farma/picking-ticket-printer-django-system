@@ -1,6 +1,9 @@
+from unittest.mock import Mock, patch
+
 import pytest
-from unittest.mock import patch, Mock
+
 from apps.erp_sync.services.order_service import ERPOrderService
+
 
 @pytest.mark.django_db
 class TestERPOrderService:

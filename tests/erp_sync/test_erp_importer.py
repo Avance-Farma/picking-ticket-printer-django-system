@@ -1,8 +1,9 @@
 import pytest
 from django.utils import timezone
+
 from apps.erp_sync.services.erp_importer import ERPOrderImporter
 from apps.orders.models import Order
-from tests.factories import OrderFactory, OrderItemFactory
+
 
 @pytest.fixture
 def sample_api_order():

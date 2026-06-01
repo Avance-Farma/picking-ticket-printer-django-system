@@ -1,11 +1,13 @@
+from unittest.mock import MagicMock, patch
+
 import pytest
-from unittest.mock import patch, MagicMock
-from django.utils import timezone
-from apps.orders.models import Order
-from apps.orders.services.volume_service import VolumeService
+
 from apps.erp_sync.services.erp_importer import ERPOrderImporter
 from apps.erp_sync.services.volume_push_service import ERPVolumePushService
+from apps.orders.models import Order
+from apps.orders.services.volume_service import VolumeService
 from tests.factories import OrderFactory
+
 
 @pytest.mark.django_db
 class TestVolumeSyncRegression:
