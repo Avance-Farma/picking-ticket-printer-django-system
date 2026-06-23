@@ -23,7 +23,8 @@ def create_instance(instance_name):
     payload = {
         "instanceName": instance_name,
         "token": instance_name,
-        "qrcode": True
+        "qrcode": True,
+        "integration": "WHATSAPP-BAILEYS"
     }
     
     try:
@@ -31,7 +32,10 @@ def create_instance(instance_name):
         response.raise_for_status()
         return response.json()
     except requests.RequestException as e:
-        logger.error(f"Erro ao criar instância {instance_name}: {e}")
+        error_details = ""
+        if hasattr(e, 'response') and e.response is not None:
+            error_details = f" - Body: {e.response.text}"
+        logger.error(f"Erro ao criar instância {instance_name}: {e}{error_details}")
         return None
 
 def fetch_instances():
