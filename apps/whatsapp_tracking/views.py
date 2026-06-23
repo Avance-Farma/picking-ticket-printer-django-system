@@ -41,7 +41,15 @@ def settings_view(request):
             # Chama a Evolution API
             resp = services.create_instance(instance_name)
             if resp:
-                WhatsAppInstance.objects.get_or_create(name=instance_name)
+                instance, _ = WhatsAppInstance.objects.get_or_create(name=instance_name)
+                
+                # A Evolution API v2 retorna o qrcode no dicionário resp
+                qr_code = resp.get("qrcode", {}).get("base64")
+                if qr_code:
+                    instance.qr_code_base64 = qr_code
+                    instance.connection_status = WhatsAppInstance.ConnectionStatus.CONNECTING
+                    instance.save()
+                    
                 messages.success(request, f"Instância {instance_name} criada com sucesso. Leia o QR Code.")
             else:
                 messages.error(request, "Falha ao comunicar com a Evolution API.")

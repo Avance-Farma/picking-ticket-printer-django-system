@@ -34,6 +34,8 @@ def webhook_view(request):
 
     if event == "connection.update":
         _handle_connection_update(instance_name, data.get("data", {}))
+    elif event == "qrcode.updated":
+        _handle_qrcode_update(instance_name, data.get("data", {}))
     elif event == "messages.upsert":
         _handle_messages_upsert(instance_name, data.get("data", {}))
 
@@ -60,6 +62,17 @@ def _handle_connection_update(instance_name, data):
     
     instance.save()
     logger.info(f"Instance {instance_name} state updated to {state}")
+
+def _handle_qrcode_update(instance_name, data):
+    # data costuma ser {"qrcode": {"base64": "..."}}
+    qr_data = data.get("qrcode", {})
+    base64_qr = qr_data.get("base64")
+    if base64_qr:
+        instance, _ = WhatsAppInstance.objects.get_or_create(name=instance_name)
+        instance.qr_code_base64 = base64_qr
+        instance.connection_status = WhatsAppInstance.ConnectionStatus.CONNECTING
+        instance.save()
+        logger.info(f"Instance {instance_name} QR code updated via webhook")
 
 def _handle_messages_upsert(instance_name, data):
     message_info = data.get("message", {})
