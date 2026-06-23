@@ -54,6 +54,8 @@ services:
       - DB_HOST=db
       - DB_PORT=5432
       - DJANGO_ENV=development
+      - EVOLUTION_API_URL=http://evolution-api:8080
+      - EVOLUTION_API_KEY=minha-chave-secreta-123
     depends_on:
       db:
         condition: service_healthy
@@ -166,6 +168,53 @@ services:
       - web
     networks:
       - frontend
+
+  # ─── Evolution API (WhatsApp Local Dev) ──────────────────────────────────
+  evolution-api:
+    image: atendai/evolution-api:latest
+    ports:
+      - "8080:8080"
+    environment:
+      - SERVER_URL=http://localhost:8080
+      - AUTHENTICATION_TYPE=apikey
+      - AUTHENTICATION_API_KEY=minha-chave-secreta-123
+      - AUTHENTICATION_EXPOSE_IN_FETCH_INSTANCES=true
+      - DATABASE_ENABLED=true
+      - DATABASE_CONNECTION_URI=postgresql://${POSTGRES_USER:-avance}:${POSTGRES_PASSWORD:-avance}@db:5432/${POSTGRES_DB:-picking_system}
+      - DATABASE_CONNECTION_CLIENT_NAME=evolution_dev
+      - REDIS_ENABLED=true
+      - REDIS_URI=redis://redis:6379/2
+      - WEBHOOK_GLOBAL_ENABLED=true
+      # Aponta pro container 'web' na rede interna do docker-compose
+      - WEBHOOK_GLOBAL_URL=http://web:8000/whatsapp/api/webhook/
+      - WEBHOOK_GLOBAL_WEBHOOK_BY_EVENTS=false
+      - WEBHOOK_EVENTS_APPLICATION_STARTUP=false
+      - WEBHOOK_EVENTS_QRCODE_UPDATED=true
+      - WEBHOOK_EVENTS_MESSAGES_SET=false
+      - WEBHOOK_EVENTS_MESSAGES_UPSERT=true
+      - WEBHOOK_EVENTS_MESSAGES_UPDATE=false
+      - WEBHOOK_EVENTS_MESSAGES_DELETE=false
+      - WEBHOOK_EVENTS_SEND_MESSAGE=false
+      - WEBHOOK_EVENTS_CONTACTS_SET=false
+      - WEBHOOK_EVENTS_CONTACTS_UPSERT=false
+      - WEBHOOK_EVENTS_CONTACTS_UPDATE=false
+      - WEBHOOK_EVENTS_PRESENCE_UPDATE=false
+      - WEBHOOK_EVENTS_CHATS_SET=false
+      - WEBHOOK_EVENTS_CHATS_UPSERT=false
+      - WEBHOOK_EVENTS_CHATS_UPDATE=false
+      - WEBHOOK_EVENTS_CHATS_DELETE=false
+      - WEBHOOK_EVENTS_GROUPS_UPSERT=false
+      - WEBHOOK_EVENTS_GROUPS_UPDATE=false
+      - WEBHOOK_EVENTS_GROUP_PARTICIPANTS_UPDATE=false
+      - WEBHOOK_EVENTS_CONNECTION_UPDATE=true
+      - WEBHOOK_EVENTS_CALL_OFFER=false
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - backend
 
 volumes:
   postgres_data:
