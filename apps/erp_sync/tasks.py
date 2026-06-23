@@ -315,16 +315,20 @@ def _push_volume_logic(task_instance, order_number: str, volume: int):
             retries + 1,
             max_retries + 1,
             exc,
+            exc_info=True,
         )
         if retries >= max_retries:
             logger.critical(
-                "ERP Push Task: FALHA DEFINITIVA pedido %s.",
+                "ERP Push Task: FALHA DEFINITIVA pedido %s após %d tentativas: %s",
                 order_number,
+                max_retries + 1,
+                exc,
+                exc_info=True,
             )
             # Falha Definitiva: Marca como Erro e salva o detalhe
             Order.objects.filter(order_number=order_number).update(
                 erp_volume_sync_status=Order.ERPSyncStatus.ERROR,
-                erp_volume_sync_error=str(exc)
+                erp_volume_sync_error=f"Falha definitiva após {max_retries + 1} tentativas: {str(exc)}",
             )
             return
         raise task_instance.retry(exc=exc)
