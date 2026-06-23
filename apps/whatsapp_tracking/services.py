@@ -1,12 +1,13 @@
 import requests
 import logging
+import os
 from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
-# Configurações padrão (devem ser substituídas pelas de produção via env)
-EVOLUTION_API_URL = getattr(settings, "EVOLUTION_API_URL", "http://localhost:8080")
-EVOLUTION_API_KEY = getattr(settings, "EVOLUTION_API_KEY", "minha-chave-secreta-123")
+# Lê das variáveis de ambiente com fallback para local
+EVOLUTION_API_URL = os.getenv("EVOLUTION_API_URL", getattr(settings, "EVOLUTION_API_URL", "http://localhost:8080"))
+EVOLUTION_API_KEY = os.getenv("EVOLUTION_API_KEY", getattr(settings, "EVOLUTION_API_KEY", "minha-chave-secreta-123"))
 
 def _get_headers():
     return {
