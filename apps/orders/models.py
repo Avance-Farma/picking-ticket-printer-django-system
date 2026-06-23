@@ -138,6 +138,33 @@ class Order(models.Model):
     def __str__(self):
         return f"{self.order_number}"
 
+    @classmethod
+    def get_pending_erp_sync_orders(cls, hours=24):
+        """
+        Retorna pedidos que estão PENDING há mais de X horas.
+        Esses são candidatos a falha silenciosa.
+        """
+        from datetime import timedelta
+
+        from django.utils import timezone
+
+        cutoff_time = timezone.now() - timedelta(hours=hours)
+        return cls.objects.filter(
+            erp_volume_sync_status=cls.ERPSyncStatus.PENDING,
+            updated_at__lt=cutoff_time,
+            total_volumes__gt=0,
+        ).order_by("updated_at")
+
+    @classmethod
+    def get_error_erp_sync_orders(cls):
+        """
+        Retorna pedidos com erro de sincronização ERP.
+        """
+        return cls.objects.filter(
+            erp_volume_sync_status=cls.ERPSyncStatus.ERROR,
+            total_volumes__gt=0,
+        ).order_by("-updated_at")
+
     @property
     def total_price(self):
         return sum(
