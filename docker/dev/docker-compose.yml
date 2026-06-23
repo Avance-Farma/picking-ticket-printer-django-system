@@ -183,7 +183,7 @@ services:
       - AUTHENTICATION_EXPOSE_IN_FETCH_INSTANCES=true
       - DATABASE_ENABLED=true
       - DATABASE_PROVIDER=postgresql
-      - DATABASE_CONNECTION_URI=postgresql://django_user:changeme@db:5432/avance_wms
+      - DATABASE_CONNECTION_URI=postgresql://django_user:changeme@db:5432/avance_wms?schema=evolution
       - DATABASE_CONNECTION_CLIENT_NAME=evolution_dev
       - REDIS_ENABLED=true
       - REDIS_URI=redis://redis:6379/2
