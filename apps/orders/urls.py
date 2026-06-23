@@ -9,6 +9,7 @@ from .api_views import (
     OrderDetailByPkAPIView,
     OrderListAPIView,
     OrderRetrieveAPIView,
+    RetryERPSyncAPIView,
 )
 from .views import OrderDetailView, OrdersListView
 
@@ -61,5 +62,11 @@ urlpatterns = [
         "api/v1/volumes/to-pdf/",
         ConvertZPLToPDFAPIView.as_view(),
         name="api-convert-pdf",
+    ),
+    # Retry de sincronização ERP (ERROR ou PENDING → reenfileira task)
+    path(
+        "api/v1/orders/<int:pk>/retry-erp-sync/",
+        RetryERPSyncAPIView.as_view(),
+        name="api-retry-erp-sync",
     ),
 ]

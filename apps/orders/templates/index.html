@@ -221,6 +221,18 @@
                                     ERP
                                 {% endif %}
                             </div>
+                            {% if order.erp_volume_sync_status == 'error' or order.erp_volume_sync_status == 'pending' %}
+                            <button
+                                onclick="retryERPSync({{ order.pk }}, event)"
+                                class="inline-flex items-center gap-1 px-2 py-1 rounded text-[11px] font-bold uppercase tracking-wider border transition-colors
+                                {% if order.erp_volume_sync_status == 'error' %}bg-rose-50 text-rose-600 border-rose-200 hover:bg-rose-100{% else %}bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100{% endif %}"
+                                title="Reenfileirar sincronização com ERP">
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                    <path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36M20.49 15a9 9 0 0 1-14.85 3.36" />
+                                </svg>
+                                Retry
+                            </button>
+                            {% endif %}
                             {% endif %}
                         </div>
                     </td>
@@ -978,16 +990,39 @@
             itemsHtml = '<p style="font-size:.875rem;color:#94a3b8;font-style:italic">Nenhum item registrado.</p>';
         }
 
-        document.getElementById("modal-body").innerHTML =
-            (d.erp_volume_sync_status === 'error' ? 
-                `<div style="margin-bottom:1.25rem;padding:.75rem 1rem;background:#fff1f2;border:1px solid #fecaca;border-radius:.75rem;color:#b91c1c;font-size:.875rem;animation:slideUp .2s ease-out">
-                    <div style="font-weight:700;margin-bottom:.25rem;display:flex;align-items:center;gap:.5rem">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-                        Erro na Sincronização ERP
+        // ERP status section helper
+        function erpStatusSectionHtml(d) {
+            if (!d.erp_volume_sync_status) return "";
+            const isSent = d.erp_volume_sync_status === 'sent';
+            const isError = d.erp_volume_sync_status === 'error';
+            const isPending = d.erp_volume_sync_status === 'pending';
+            const bg = isError ? '#fff1f2' : isSent ? '#f0fdf4' : '#f8fafc';
+            const border = isError ? '#fecaca' : isSent ? '#bbf7d0' : '#e2e8f0';
+            const labelColor = isError ? '#b91c1c' : isSent ? '#15803d' : '#475569';
+            const statusText = isSent
+                ? '✓ Sincronizado com sucesso'
+                : isError
+                    ? '✗ Erro na sincronização'
+                    : '⏳ Aguardando sincronização';
+            const retryBtn = (isError || isPending)
+                ? `<button onclick="retryERPSync(${d.id}, event)" style="padding:.375rem .75rem;border-radius:.375rem;font-size:.75rem;font-weight:600;background:#2563eb;color:#fff;border:0;cursor:pointer;transition:background .2s" onmouseover="this.style.background='#1d4ed8'" onmouseout="this.style.background='#2563eb'">Sincronizar Agora</button>`
+                : '';
+            const errorDetail = isError && d.erp_volume_sync_error
+                ? `<span style="display:block;font-size:.75rem;color:#b91c1c;margin-top:.25rem">${d.erp_volume_sync_error}</span>`
+                : '';
+            return `<div style="margin-bottom:1.25rem;padding:.75rem 1rem;background:${bg};border:1px solid ${border};border-radius:.75rem;animation:slideUp .2s ease-out">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:.75rem">
+                    <div>
+                        <p style="font-size:.6875rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:${labelColor};margin:0">Status de Sincronização ERP</p>
+                        <p style="font-size:.875rem;color:#1e293b;margin:.25rem 0 0">${statusText}${errorDetail}</p>
                     </div>
-                    ${d.erp_volume_sync_error || "Erro desconhecido."}
-                </div>` : ""
-            ) +
+                    ${retryBtn}
+                </div>
+            </div>`;
+        }
+
+        document.getElementById("modal-body").innerHTML =
+            erpStatusSectionHtml(d) +
             mSection("Picking & Pedido", [
                 mRow("Picking", d.picking), mRow("Nº Pedido", d.order_number),
                 mRow("Rota", d.order_route), mRow("NF", d.invoice_number),
@@ -1067,6 +1102,53 @@
 
         showToast("Configuração salva localmente nesta máquina.", "success");
         closePrinterModal();
+    }
+
+    // ── ERP Sync Retry ────────────────────────────
+    async function retryERPSync(orderId, event) {
+        event.stopPropagation();
+
+        if (!confirm('Reenfileirar sincronização com ERP para este pedido?')) {
+            return;
+        }
+
+        const button = event.target.closest('button');
+        const originalHTML = button.innerHTML;
+        button.disabled = true;
+        button.innerHTML = '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="animate-spin"><circle cx="12" cy="12" r="10" /></svg> Sincronizando...';
+
+        try {
+            const response = await fetch(`/orders/api/v1/orders/${orderId}/retry-erp-sync/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': CSRF_TOKEN,
+                },
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                showToast('✓ Sincronização reenfileirada com sucesso!', 'success');
+                // Atualizar badge de status ERP para "pending"
+                const erpBadge = button.previousElementSibling;
+                if (erpBadge) {
+                    erpBadge.innerHTML = '<svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" class="opacity-50"><circle cx="12" cy="12" r="1" /><circle cx="19" cy="12" r="1" /><circle cx="5" cy="12" r="1" /></svg> ERP';
+                    erpBadge.className = 'inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider border shadow-sm bg-slate-50 text-slate-400 border-slate-200';
+                }
+                // Recarregar página após 2 segundos para refletir mudanças
+                setTimeout(() => location.reload(), 2000);
+            } else {
+                showToast('✗ Erro: ' + (data.error || 'Falha ao reenfileirar'), 'error');
+                button.disabled = false;
+                button.innerHTML = originalHTML;
+            }
+        } catch (error) {
+            console.error('Erro:', error);
+            showToast('✗ Erro de conexão ao reenfileirar', 'error');
+            button.disabled = false;
+            button.innerHTML = originalHTML;
+        }
     }
 </script>
 {% endblock %}
