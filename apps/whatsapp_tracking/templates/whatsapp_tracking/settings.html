@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="px-4 sm:px-6 lg:px-8 py-8 w-full max-w-9xl mx-auto">
+    
+    <div class="sm:flex sm:justify-between sm:items-center mb-8">
+        <div class="mb-4 sm:mb-0">
+            <h1 class="text-2xl md:text-3xl text-slate-800 font-bold">Configurações WhatsApp</h1>
+        </div>
+    </div>
+
+    <!-- Messages -->
+    {% if messages %}
+        <div class="mb-4">
+            {% for message in messages %}
+                <div class="p-4 mb-2 rounded-sm text-sm {% if message.tags == 'success' %}bg-emerald-100 text-emerald-600{% elif message.tags == 'error' %}bg-rose-100 text-rose-600{% else %}bg-blue-100 text-blue-600{% endif %}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        
+        <!-- Nova Instância -->
+        <div class="bg-white shadow-lg rounded-sm border border-slate-200 p-5">
+            <h2 class="text-lg font-semibold text-slate-800 mb-4">Adicionar Vendedor (Instância)</h2>
+            <form method="POST">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="create">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium mb-1" for="instance_name">Nome da Instância</label>
+                    <input id="instance_name" name="instance_name" class="form-input w-full" type="text" placeholder="ex: joao-vendedor" required />
+                    <p class="text-xs text-slate-500 mt-1">Sugerido usar hífens e sem espaços.</p>
+                </div>
+                <button type="submit" class="btn bg-indigo-500 hover:bg-indigo-600 text-white">Criar e Gerar QR Code</button>
+            </form>
+        </div>
+
+        <!-- Instâncias Atuais -->
+        <div class="bg-white shadow-lg rounded-sm border border-slate-200 p-5">
+            <h2 class="text-lg font-semibold text-slate-800 mb-4">Instâncias Ativas</h2>
+            
+            {% if not instances %}
+                <p class="text-slate-500 text-sm">Nenhuma instância cadastrada.</p>
+            {% else %}
+                <ul class="space-y-4">
+                    {% for instance in instances %}
+                        <li class="p-4 border border-slate-200 rounded-sm">
+                            <div class="flex justify-between items-center mb-2">
+                                <div>
+                                    <span class="font-medium text-slate-800">{{ instance.name }}</span>
+                                    <span class="text-xs px-2 py-0.5 rounded-full {% if instance.connection_status == 'open' %}bg-emerald-100 text-emerald-600{% elif instance.connection_status == 'connecting' %}bg-amber-100 text-amber-600{% else %}bg-rose-100 text-rose-600{% endif %}">
+                                        {{ instance.get_connection_status_display }}
+                                    </span>
+                                </div>
+                                <div class="flex space-x-2">
+                                    <form method="POST" class="inline">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="action" value="logout">
+                                        <input type="hidden" name="instance_name" value="{{ instance.name }}">
+                                        <button type="submit" class="text-slate-400 hover:text-amber-500" title="Desconectar"><svg class="w-4 h-4 fill-current" viewBox="0 0 16 16"><path d="M12 10v-2H5V6h7V4l4 3-4 3Z"/><path d="M1 1h10v3h-2V3H3v10h6v-1h2v3H1V1Z"/></svg></button>
+                                    </form>
+                                    <form method="POST" class="inline" onsubmit="return confirm('Tem certeza que deseja deletar?');">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="action" value="delete">
+                                        <input type="hidden" name="instance_name" value="{{ instance.name }}">
+                                        <button type="submit" class="text-slate-400 hover:text-rose-500" title="Deletar"><svg class="w-4 h-4 fill-current" viewBox="0 0 16 16"><path d="M5 7h2v6H5V7zm4 0h2v6H9V7zm3-6v2h4v2h-1v10c0 .6-.4 1-1 1H2c-.6 0-1-.4-1-1V5H0V3h4V1c0-.6.4-1 1-1h6c.6 0 1 .4 1 1zM6 2v1h4V2H6zm7 3H3v9h10V5z"/></svg></button>
+                                    </form>
+                                </div>
+                            </div>
+
+                            {% if instance.qr_code_base64 and instance.connection_status != 'open' %}
+                                <div class="mt-4 flex flex-col items-center p-4 bg-slate-50 rounded">
+                                    <p class="text-sm text-slate-500 mb-2">Leia este QR Code no WhatsApp (Aparelhos Conectados)</p>
+                                    <img src="{{ instance.qr_code_base64 }}" alt="QR Code" class="w-48 h-48 border border-slate-200 rounded">
+                                </div>
+                            {% endif %}
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        </div>
+
+    </div>
+</div>
+{% endblock %}

@@ -99,6 +99,7 @@ INSTALLED_APPS = [
     "apps.deliveries",
     "apps.ticket_printer",
     "apps.erp_sync",
+    "apps.whatsapp_tracking",
 ]
 
 MIDDLEWARE = [
@@ -439,6 +440,22 @@ UNFOLD = {
                         "link": reverse_lazy(
                             "admin:addresses_address_changelist"
                         ),
+                    },
+                ],
+            },
+            {
+                "title": _("WhatsApp"),
+                "separator": True,
+                "items": [
+                    {
+                        "title": _("Dashboard"),
+                        "icon": "chat",
+                        "link": reverse_lazy("whatsapp_tracking:dashboard"),
+                    },
+                    {
+                        "title": _("Configurações"),
+                        "icon": "qr_code",
+                        "link": reverse_lazy("whatsapp_tracking:settings"),
                     },
                 ],
             },

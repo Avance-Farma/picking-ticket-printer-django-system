@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="px-4 sm:px-6 lg:px-8 py-8 w-full max-w-9xl mx-auto">
+    
+    <div class="sm:flex sm:justify-between sm:items-center mb-8">
+        <div class="mb-4 sm:mb-0">
+            <h1 class="text-2xl md:text-3xl text-slate-800 font-bold">Dashboard WhatsApp</h1>
+        </div>
+        <div class="grid grid-flow-col sm:auto-cols-max justify-start sm:justify-end gap-2">
+            <a href="{% url 'whatsapp_tracking:settings' %}" class="btn bg-white border-slate-200 hover:border-slate-300 text-indigo-500">
+                <svg class="w-4 h-4 fill-current shrink-0 mr-2" viewBox="0 0 16 16">
+                    <path d="M10.5 1a3.502 3.502 0 0 1 3.325 2.5H15v1h-1.175a3.502 3.502 0 0 1-6.65 0H1v-1h6.175A3.502 3.502 0 0 1 10.5 1Zm0 2a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3ZM5.5 9a3.502 3.502 0 0 1 3.325 2.5H15v1H8.825a3.502 3.502 0 0 1-6.65 0H1v-1h1.175A3.502 3.502 0 0 1 5.5 9Zm0 2a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Z"/>
+                </svg>
+                Configurações (QR Code)
+            </a>
+        </div>
+    </div>
+
+    <!-- Lista de Contatos e Última Mensagem -->
+    <div class="bg-white shadow-lg rounded-sm border border-slate-200">
+        <header class="px-5 py-4 border-b border-slate-100">
+            <h2 class="font-semibold text-slate-800">Conversas Recentes</h2>
+        </header>
+        <div class="p-3">
+            
+            {% if not contacts %}
+                <div class="p-4 text-center text-slate-500">Nenhuma conversa registrada ainda. Aguardando webhooks...</div>
+            {% else %}
+                <ul class="space-y-3">
+                    {% for item in contacts %}
+                        {% with contact=item.contact last_msg=item.last_message %}
+                        <li class="p-4 bg-white border border-slate-200 rounded-sm hover:border-indigo-300 transition-colors cursor-pointer" onclick="alert('Funcionalidade de exibir histórico de mensagens a ser desenvolvida no próximo módulo.')">
+                            <div class="flex items-start">
+                                <!-- Avatar Placeholder -->
+                                <div class="w-10 h-10 shrink-0 mr-3 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 font-bold uppercase">
+                                    {{ contact.push_name|default:"?"|slice:":1" }}
+                                </div>
+                                <div class="grow">
+                                    <div class="flex justify-between items-center mb-1">
+                                        <h3 class="font-semibold text-slate-800">{{ contact.push_name|default:"Nome não informado" }}</h3>
+                                        <div class="text-xs text-slate-500">{{ last_msg.timestamp|date:"d/m/Y H:i"|default:"" }}</div>
+                                    </div>
+                                    <div class="text-xs text-slate-500 mb-1">{{ contact.phone_number }}</div>
+                                    
+                                    <div class="text-sm {% if last_msg.from_me %}text-slate-500{% else %}text-slate-800 font-medium{% endif %}">
+                                        {% if last_msg %}
+                                            {% if last_msg.from_me %}<span class="text-xs mr-1 text-slate-400">Vocês:</span>{% endif %}
+                                            {% if last_msg.message_type == 'image' %}📷 Imagem
+                                            {% elif last_msg.message_type == 'audio' %}🎵 Áudio
+                                            {% elif last_msg.message_type == 'document' %}📄 Documento
+                                            {% else %}{{ last_msg.content|truncatechars:80 }}{% endif %}
+                                        {% else %}
+                                            <span class="italic text-slate-400">Nenhuma mensagem.</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </li>
+                        {% endwith %}
+                    {% endfor %}
+                </ul>
+            {% endif %}
+
+        </div>
+    </div>
+
+</div>
+{% endblock %}

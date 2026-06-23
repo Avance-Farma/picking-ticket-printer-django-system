@@ -59,6 +59,7 @@ urlpatterns = [
     path("", include("apps.orders.urls")),
     path("products/", include("apps.products.urls")),
     path("printer/", include("apps.ticket_printer.urls")),
+    path("whatsapp/", include("apps.whatsapp_tracking.urls")),
 ]
 
 if settings.DEBUG:

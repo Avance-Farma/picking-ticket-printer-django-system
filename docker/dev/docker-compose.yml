@@ -103,6 +103,33 @@ services:
     networks:
       - backend
 
+  # ─── Celery Beat (ERP Sync Scheduler — Development) ──────────────────────
+  beat:
+    build:
+      context: ../../
+      dockerfile: docker/django/Dockerfile
+      target: runtime
+      args:
+        INSTALL_DEV: "true"
+    restart: unless-stopped
+    command: celery -A core beat -l info
+    env_file:
+      - ../../.env
+    environment:
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DJANGO_ENV=development
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    volumes:
+      - ../../:/app
+      - /app/.venv
+    networks:
+      - backend
+
   # ─── MkDocs Live Server (Development) ────────────────────────────────────
   docs:
     build:
