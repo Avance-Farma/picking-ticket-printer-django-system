@@ -292,6 +292,7 @@ def sync_erp_orders_task(
 def _push_volume_logic(task_instance, order_number: str, volume: int):
     """
     Lógica interna de envio de volume e atualização de status.
+    Captura TODAS as exceções (não apenas ERPSyncError) para evitar falhas silenciosas.
     Separada para facilitar testes unitários sem mockar todo o Celery.
     """
     from apps.erp_sync.exceptions import ERPSyncError
@@ -305,18 +306,24 @@ def _push_volume_logic(task_instance, order_number: str, volume: int):
             erp_volume_sync_status=Order.ERPSyncStatus.SENT,
             erp_volume_sync_error=""
         )
+        logger.info(
+            "ERP Push: Volume do pedido %s sincronizado com sucesso.",
+            order_number,
+        )
     except ERPSyncError as exc:
+        # Erro esperado do ERP (tratado com retry)
         retries = task_instance.request.retries
         max_retries = task_instance.max_retries
-        
+
         logger.error(
-            "ERP Push Task: falha pedido %s (tentativa %d/%d): %s",
+            "ERP Push Task: falha esperada pedido %s (tentativa %d/%d): %s",
             order_number,
             retries + 1,
             max_retries + 1,
             exc,
             exc_info=True,
         )
+
         if retries >= max_retries:
             logger.critical(
                 "ERP Push Task: FALHA DEFINITIVA pedido %s após %d tentativas: %s",
@@ -331,7 +338,85 @@ def _push_volume_logic(task_instance, order_number: str, volume: int):
                 erp_volume_sync_error=f"Falha definitiva após {max_retries + 1} tentativas: {str(exc)}",
             )
             return
+
+        # Retry com backoff exponencial
         raise task_instance.retry(exc=exc)
+
+    except Exception as exc:
+        # Erro INESPERADO (não ERPSyncError) — também precisa de retry
+        retries = task_instance.request.retries
+        max_retries = task_instance.max_retries
+
+        logger.error(
+            "ERP Push Task: falha INESPERADA pedido %s (tentativa %d/%d): %s",
+            order_number,
+            retries + 1,
+            max_retries + 1,
+            exc,
+            exc_info=True,
+        )
+
+        if retries >= max_retries:
+            logger.critical(
+                "ERP Push Task: FALHA DEFINITIVA (inesperada) pedido %s após %d tentativas: %s",
+                order_number,
+                max_retries + 1,
+                exc,
+                exc_info=True,
+            )
+            # Falha Definitiva: Marca como Erro com classe da exceção
+            error_msg = (
+                f"Falha inesperada após {max_retries + 1} tentativas: "
+                f"{exc.__class__.__name__}: {str(exc)}"
+            )
+            Order.objects.filter(order_number=order_number).update(
+                erp_volume_sync_status=Order.ERPSyncStatus.ERROR,
+                erp_volume_sync_error=error_msg,
+            )
+            # Enviar alerta para administradores
+            _send_erp_sync_failure_alert(order_number, error_msg)
+            return
+
+        # Retry com backoff exponencial
+        raise task_instance.retry(exc=exc)
+
+
+def _send_erp_sync_failure_alert(order_number: str, error_msg: str):
+    """
+    Envia alerta por e-mail para administradores sobre falha persistente
+    de sincronização ERP. Falha silenciosamente se não houver admins configurados.
+    """
+    try:
+        from django.conf import settings
+        from django.core.mail import send_mail
+
+        admin_emails = [admin[1] for admin in getattr(settings, "ADMINS", [])]
+        if not admin_emails:
+            logger.warning("Nenhum email de admin configurado para alertas ERP")
+            return
+
+        subject = f"⚠️ Falha Persistente de Sincronização ERP - Pedido {order_number}"
+        message = (
+            f"Falha persistente detectada na sincronização de volume com o ERP.\n\n"
+            f"Pedido: {order_number}\n"
+            f"Erro: {error_msg}\n\n"
+            f"Ação necessária:\n"
+            f"1. Verificar status do ERP\n"
+            f"2. Verificar conectividade de rede\n"
+            f"3. Usar o botão \"Sincronizar com ERP\" na interface para retry manual\n\n"
+            f"URL: /admin/orders/order/?q={order_number}"
+        )
+
+        send_mail(
+            subject,
+            message,
+            settings.DEFAULT_FROM_EMAIL,
+            admin_emails,
+            fail_silently=True,
+        )
+        logger.info("Alerta de falha ERP enviado para administradores: pedido %s", order_number)
+    except Exception as e:
+        logger.error("Erro ao enviar alerta de falha ERP: %s", e, exc_info=True)
 
 
 @shared_task(
@@ -346,3 +431,80 @@ def push_volume_to_erp_task(self, order_number: str, volume: int):
     Envia o volume para o ERP de forma assíncrona e atualiza o status na Order.
     """
     return _push_volume_logic(self, order_number, volume)
+
+
+@shared_task(
+    bind=True,
+    name="erp_sync.check_erp_sync_health",
+    max_retries=1,
+)
+def check_erp_sync_health_task(self):
+    """
+    Task periódica que verifica saúde da sincronização ERP.
+    Alerta sobre pedidos PENDING há mais de 24h ou com ERROR persistente.
+    """
+    from datetime import timedelta
+
+    from django.conf import settings
+    from django.core.mail import send_mail
+    from django.utils import timezone
+
+    from apps.orders.models import Order
+
+    pending_hours = 24
+    cutoff_time = timezone.now() - timedelta(hours=pending_hours)
+
+    # Pedidos PENDING há mais de 24h
+    pending_orders = list(
+        Order.objects.filter(
+            erp_volume_sync_status=Order.ERPSyncStatus.PENDING,
+            updated_at__lt=cutoff_time,
+            total_volumes__gt=0,
+        ).values_list("order_number", flat=True)
+    )
+
+    # Pedidos com ERROR
+    error_orders = list(
+        Order.objects.filter(
+            erp_volume_sync_status=Order.ERPSyncStatus.ERROR,
+            total_volumes__gt=0,
+        ).values_list("order_number", flat=True)
+    )
+
+    if pending_orders or error_orders:
+        admin_emails = [admin[1] for admin in getattr(settings, "ADMINS", [])]
+        if admin_emails:
+            subject = "⚠️ Relatório de Saúde - Sincronização ERP"
+            pending_list = ", ".join(pending_orders) if pending_orders else "Nenhum"
+            error_list = ", ".join(error_orders[:10]) if error_orders else "Nenhum"
+            message = (
+                f"Relatório de Saúde da Sincronização ERP\n\n"
+                f"PENDENTES há mais de {pending_hours}h: {len(pending_orders)}\n"
+                f"{pending_list}\n\n"
+                f"COM ERRO: {len(error_orders)}\n"
+                f"{error_list}\n\n"
+                f"Ação: Verificar status do ERP e usar retry manual se necessário."
+            )
+
+            try:
+                send_mail(
+                    subject,
+                    message,
+                    settings.DEFAULT_FROM_EMAIL,
+                    admin_emails,
+                    fail_silently=True,
+                )
+                logger.info("Relatório de saúde ERP enviado para administradores")
+            except Exception as e:
+                logger.error("Erro ao enviar relatório de saúde ERP: %s", e, exc_info=True)
+
+    logger.info(
+        "ERP Sync Health: %d pendente(s) há +%dh, %d com erro",
+        len(pending_orders),
+        pending_hours,
+        len(error_orders),
+    )
+    return {
+        "pending_count": len(pending_orders),
+        "error_count": len(error_orders),
+    }
