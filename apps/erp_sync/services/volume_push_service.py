@@ -18,7 +18,7 @@ from typing import Any, Dict
 import requests
 from django.conf import settings
 
-from apps.erp_sync.exceptions import ERPSyncError
+from apps.erp_sync.exceptions import ERPSyncError, ERPValidationError
 from apps.erp_sync.services.auth_service import ERPAuthService
 
 logger = logging.getLogger(__name__)
@@ -72,7 +72,37 @@ class ERPVolumePushService:
             )
             raise ERPSyncError(f"order_number inválido para conversão: {order_number!r}") from exc
 
+        # Validar valores do payload
+        if order_id_int <= 0:
+            logger.error(
+                "[%s] ERP Push: orderId deve ser positivo: %d",
+                request_id,
+                order_id_int,
+            )
+            raise ERPSyncError(f"orderId deve ser positivo: {order_id_int}")
+
+        if volume <= 0:
+            logger.error(
+                "[%s] ERP Push: volume deve ser positivo: %d",
+                request_id,
+                volume,
+            )
+            raise ERPSyncError(f"volume deve ser positivo: {volume}")
+
+        logger.debug(
+            "[%s] ERP Push: Validação de payload OK - orderId=%d, volume=%d",
+            request_id,
+            order_id_int,
+            volume,
+        )
+
         # Preparar payload
+        # NOTA: Para idempotência futura, adicionar requestId ao payload
+        # payload = [{
+        #     "orderId": order_id_int,
+        #     "volume": volume,
+        #     "requestId": request_id  # ← ERP pode usar para deduplicação
+        # }]
         payload = [{"orderId": order_id_int, "volume": volume}]
 
         logger.info(
@@ -196,14 +226,14 @@ class ERPVolumePushService:
                 )
                 raise ERPSyncError(f"Resposta inválida do ERP (não é JSON): {response.text}") from exc
 
-            # Validar estrutura da resposta
+            # Validar estrutura da resposta — RIGOROSO
             if not isinstance(response_data, list):
                 logger.error(
                     "[%s] ERP Push: Resposta não é uma lista: %s",
                     request_id,
-                    type(response_data),
+                    type(response_data).__name__,
                 )
-                raise ERPSyncError(
+                raise ERPValidationError(
                     f"Resposta inválida do ERP: esperado lista, recebido {type(response_data).__name__}"
                 )
 
@@ -212,44 +242,153 @@ class ERPVolumePushService:
                     "[%s] ERP Push: Resposta é uma lista vazia",
                     request_id,
                 )
-                raise ERPSyncError("Resposta inválida do ERP: lista vazia")
+                raise ERPValidationError("Resposta inválida do ERP: lista vazia")
 
-            # Validar primeiro item da resposta
-            item = response_data[0]
-            if not isinstance(item, dict):
-                logger.error(
-                    "[%s] ERP Push: Primeiro item da resposta não é um dicionário: %s",
-                    request_id,
-                    type(item),
-                )
-                raise ERPSyncError("Resposta inválida do ERP: item não é dicionário")
+            # Validar TODOS os itens (não apenas o primeiro)
+            for idx, item in enumerate(response_data):
+                if not isinstance(item, dict):
+                    logger.error(
+                        "[%s] ERP Push: Item %d não é um dicionário: %s",
+                        request_id,
+                        idx,
+                        type(item).__name__,
+                    )
+                    raise ERPValidationError(
+                        f"Resposta inválida do ERP: item {idx} não é dicionário"
+                    )
 
-            # Validar campo "success"
-            success = item.get("success")
-            message = item.get("message", "")
-
-            logger.info(
-                "[%s] ERP Push: Campo 'success' na resposta: %s",
-                request_id,
-                success,
-            )
-
-            if success is False:
-                logger.error(
-                    "[%s] ERP Push: ERP recusou a atualização - Message: %s",
-                    request_id,
-                    message,
-                )
-                raise ERPSyncError(f"O ERP recusou a atualização: {message}")
-
-            if success is not True:
+            # Processar apenas o primeiro item (esperado)
+            # Mas alertar se houver múltiplos itens
+            if len(response_data) > 1:
                 logger.warning(
+                    "[%s] ERP Push: Resposta contém %d itens, processando apenas o primeiro",
+                    request_id,
+                    len(response_data),
+                )
+
+            item = response_data[0]
+
+            # Validar campo "success" — OBRIGATÓRIO e BOOLEANO
+            if "success" not in item:
+                logger.error(
+                    "[%s] ERP Push: Campo 'success' ausente na resposta",
+                    request_id,
+                )
+                raise ERPValidationError("Campo 'success' obrigatório ausente na resposta do ERP")
+
+            success = item.get("success")
+
+            # Validar tipo: deve ser booleano
+            if not isinstance(success, bool):
+                logger.error(
                     "[%s] ERP Push: Campo 'success' não é booleano: %s (tipo: %s)",
                     request_id,
                     success,
                     type(success).__name__,
                 )
-                # Não é erro crítico, mas registra aviso
+                raise ERPValidationError(
+                    f"Campo 'success' deve ser booleano, recebido {type(success).__name__}: {success}"
+                )
+
+            # Validar valor: deve ser True
+            if success is not True:
+                message = item.get("message", "Erro desconhecido")
+                logger.error(
+                    "[%s] ERP Push: ERP recusou a atualização - success=false - Message: %s",
+                    request_id,
+                    message,
+                )
+                raise ERPValidationError(f"O ERP recusou a atualização: {message}")
+
+            # Validar campo "message" — OBRIGATÓRIO e STRING
+            if "message" not in item:
+                logger.warning(
+                    "[%s] ERP Push: Campo 'message' ausente na resposta",
+                    request_id,
+                )
+                # Não é erro crítico, apenas aviso
+
+            message = item.get("message", "")
+            if not isinstance(message, str):
+                logger.warning(
+                    "[%s] ERP Push: Campo 'message' não é string: %s (tipo: %s)",
+                    request_id,
+                    message,
+                    type(message).__name__,
+                )
+                # Não é erro crítico, apenas aviso
+
+            # Validar dados retornados — CRÍTICO
+            # Verificar se ERP confirmou os dados enviados
+            if "orderId" not in item:
+                logger.error(
+                    "[%s] ERP Push: Campo 'orderId' ausente na resposta",
+                    request_id,
+                )
+                raise ERPValidationError("Campo 'orderId' obrigatório ausente na resposta do ERP")
+
+            if "volume" not in item:
+                logger.error(
+                    "[%s] ERP Push: Campo 'volume' ausente na resposta",
+                    request_id,
+                )
+                raise ERPValidationError("Campo 'volume' obrigatório ausente na resposta do ERP")
+
+            # Validar tipos dos dados retornados
+            response_order_id = item.get("orderId")
+            response_volume = item.get("volume")
+
+            if not isinstance(response_order_id, int):
+                logger.error(
+                    "[%s] ERP Push: Campo 'orderId' retornado não é inteiro: %s (tipo: %s)",
+                    request_id,
+                    response_order_id,
+                    type(response_order_id).__name__,
+                )
+                raise ERPValidationError(
+                    f"Campo 'orderId' deve ser inteiro, recebido {type(response_order_id).__name__}"
+                )
+
+            if not isinstance(response_volume, int):
+                logger.error(
+                    "[%s] ERP Push: Campo 'volume' retornado não é inteiro: %s (tipo: %s)",
+                    request_id,
+                    response_volume,
+                    type(response_volume).__name__,
+                )
+                raise ERPValidationError(
+                    f"Campo 'volume' deve ser inteiro, recebido {type(response_volume).__name__}"
+                )
+
+            # Validar se ERP confirmou os dados CORRETOS
+            if response_order_id != order_id_int:
+                logger.error(
+                    "[%s] ERP Push: orderId retornado diferente - Esperado: %d, Recebido: %d",
+                    request_id,
+                    order_id_int,
+                    response_order_id,
+                )
+                raise ERPValidationError(
+                    f"orderId retornado diferente: esperado {order_id_int}, recebido {response_order_id}"
+                )
+
+            if response_volume != volume:
+                logger.error(
+                    "[%s] ERP Push: volume retornado diferente - Esperado: %d, Recebido: %d",
+                    request_id,
+                    volume,
+                    response_volume,
+                )
+                raise ERPValidationError(
+                    f"volume retornado diferente: esperado {volume}, recebido {response_volume}"
+                )
+
+            logger.info(
+                "[%s] ERP Push: Dados confirmados pelo ERP - orderId=%d, volume=%d",
+                request_id,
+                response_order_id,
+                response_volume,
+            )
 
             # Sucesso!
             elapsed_time = time.time() - start_time
@@ -259,6 +398,22 @@ class ERPVolumePushService:
                 order_number,
                 elapsed_time,
             )
+
+            # Alertar se resposta foi muito lenta (perto do timeout)
+            if elapsed_time > 20:  # 20s de 30s timeout
+                logger.warning(
+                    "[%s] ERP Push: Resposta muito lenta: %.2fs (perto do timeout de 30s)",
+                    request_id,
+                    elapsed_time,
+                )
+
+            # Alertar se resposta foi anormalmente rápida (pode indicar cache/erro)
+            if elapsed_time < 0.1:
+                logger.warning(
+                    "[%s] ERP Push: Resposta muito rápida: %.2fs (pode indicar cache ou erro)",
+                    request_id,
+                    elapsed_time,
+                )
 
             return {
                 "success": True,

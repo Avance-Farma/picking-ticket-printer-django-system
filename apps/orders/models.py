@@ -165,6 +165,21 @@ class Order(models.Model):
             total_volumes__gt=0,
         ).order_by("-updated_at")
 
+    @classmethod
+    def get_sync_attempts_for_order(cls, order_number: str):
+        """
+        Retorna histórico de tentativas de sincronização para um pedido.
+        Útil para debugging de falsos positivos.
+        """
+        from apps.erp_sync.models import ERPSyncLog
+
+        try:
+            return ERPSyncLog.objects.filter(
+                order_number=order_number
+            ).order_by('-created_at')
+        except Exception:
+            return []
+
     @property
     def total_price(self):
         return sum(
