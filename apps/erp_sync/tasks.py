@@ -292,53 +292,75 @@ def sync_erp_orders_task(
 def _push_volume_logic(task_instance, order_number: str, volume: int):
     """
     Lógica interna de envio de volume e atualização de status.
-    Separada para facilitar testes unitários sem mockar todo o Celery.
+    Captura TODAS as exceções (não apenas ERPSyncError) para evitar falhas silenciosas.
     """
     from apps.erp_sync.exceptions import ERPSyncError
     from apps.erp_sync.services.volume_push_service import ERPVolumePushService
     from apps.orders.models import Order
 
+    logger.info(
+        "ERP Push Task: Iniciando sincronização para pedido=%s volume=%d (tentativa %d/%d)",
+        order_number,
+        volume,
+        task_instance.request.retries + 1,
+        task_instance.max_retries + 1,
+    )
+
     try:
-        ERPVolumePushService.push_volume(order_number, volume)
+        result = ERPVolumePushService.push_volume(order_number, volume)
+
         # Sucesso: Marca como Sincronizado
         Order.objects.filter(order_number=order_number).update(
             erp_volume_sync_status=Order.ERPSyncStatus.SENT,
             erp_volume_sync_error=""
         )
+
+        logger.info(
+            "ERP Push Task: Sucesso para pedido=%s - Request ID: %s - Tempo: %.2fs",
+            order_number,
+            result.get("request_id"),
+            result.get("elapsed_time", 0),
+        )
+
     except ERPSyncError as exc:
+        # Erro esperado do ERP (tratado com retry)
         retries = task_instance.request.retries
         max_retries = task_instance.max_retries
 
         logger.error(
-            "ERP Push Task: falha pedido %s (tentativa %d/%d): %s",
+            "ERP Push Task: Falha esperada para pedido=%s (tentativa %d/%d): %s",
             order_number,
             retries + 1,
             max_retries + 1,
             exc,
             exc_info=True,
         )
+
         if retries >= max_retries:
             logger.critical(
-                "ERP Push Task: FALHA DEFINITIVA pedido %s após %d tentativas: %s",
+                "ERP Push Task: FALHA DEFINITIVA para pedido=%s após %d tentativas",
                 order_number,
                 max_retries + 1,
-                exc,
                 exc_info=True,
             )
-            # Falha Definitiva: Marca como Erro e salva o detalhe
+            # Falha Definitiva: Marca como Erro
             Order.objects.filter(order_number=order_number).update(
                 erp_volume_sync_status=Order.ERPSyncStatus.ERROR,
-                erp_volume_sync_error=f"Falha definitiva após {max_retries + 1} tentativas: {str(exc)}",
+                erp_volume_sync_error=f"Falha definitiva após {max_retries + 1} tentativas: {str(exc)}"
             )
             return
+
+        # Retry com backoff exponencial
         raise task_instance.retry(exc=exc)
+
     except Exception as exc:
+        # Erro INESPERADO (não ERPSyncError) — também precisa de retry
         retries = task_instance.request.retries
         max_retries = task_instance.max_retries
         exc_class = type(exc).__name__
 
         logger.error(
-            "ERP Push Task: erro inesperado (%s) pedido %s (tentativa %d/%d): %s",
+            "ERP Push Task: Erro inesperado (%s) para pedido=%s (tentativa %d/%d): %s",
             exc_class,
             order_number,
             retries + 1,
@@ -346,13 +368,13 @@ def _push_volume_logic(task_instance, order_number: str, volume: int):
             exc,
             exc_info=True,
         )
+
         if retries >= max_retries:
             logger.critical(
-                "ERP Push Task: FALHA DEFINITIVA (erro inesperado %s) pedido %s após %d tentativas: %s",
+                "ERP Push Task: FALHA DEFINITIVA (erro inesperado %s) para pedido=%s após %d tentativas",
                 exc_class,
                 order_number,
                 max_retries + 1,
-                exc,
                 exc_info=True,
             )
             # Falha Definitiva por erro inesperado: registra no banco
@@ -363,6 +385,8 @@ def _push_volume_logic(task_instance, order_number: str, volume: int):
                 ),
             )
             return
+
+        # Retry com backoff exponencial
         raise task_instance.retry(exc=exc)
 
 
