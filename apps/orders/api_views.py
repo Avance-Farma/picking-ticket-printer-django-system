@@ -370,6 +370,8 @@ class RetryERPSyncAPIView(APIView):
     Apenas funciona para pedidos com status ERROR ou PENDING.
     """
 
+    queryset = Order.objects.all()
+
     @extend_schema(
         request=None,
         responses={
