@@ -58,8 +58,7 @@ DEBUG = env("DEBUG", default=False)
 ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=[
     "localhost",
     "127.0.0.1",
-    "picking-ticket-printer-django-system-production-f15d.up.railway.app",
-    "tickets.avancefarma.com.br",
+    "web",
     "*"
 ])
 
@@ -379,7 +378,7 @@ UNFOLD = {
     "DASHBOARD_CALLBACK": "core.admin_dashboard.dashboard_callback",
     "SIDEBAR": {
         "show_search": True,
-        "show_all_applications": True,
+        "show_all_applications": False,
         "navigation": [
             {
                 "title": _("Painel de Controle"),
@@ -448,14 +447,34 @@ UNFOLD = {
                 "separator": True,
                 "items": [
                     {
-                        "title": _("Dashboard"),
-                        "icon": "chat",
-                        "link": reverse_lazy("whatsapp_tracking:dashboard"),
+                        "title": _("Visão Hierárquica"),
+                        "icon": "account_tree",
+                        "link": reverse_lazy("whatsapp_hierarchy"),
                     },
                     {
-                        "title": _("Configurações"),
+                        "title": _("Supervisores"),
+                        "icon": "badge",
+                        "link": reverse_lazy("admin:whatsapp_tracking_supervisor_changelist"),
+                    },
+                    {
+                        "title": _("Contatos (Leads)"),
+                        "icon": "chat",
+                        "link": reverse_lazy("admin:whatsapp_tracking_whatsappcontact_changelist"),
+                    },
+                    {
+                        "title": _("Instâncias"),
                         "icon": "qr_code",
-                        "link": reverse_lazy("whatsapp_tracking:settings"),
+                        "link": reverse_lazy("admin:whatsapp_tracking_whatsappinstance_changelist"),
+                    },
+                    {
+                        "title": _("Campanhas"),
+                        "icon": "campaign",
+                        "link": reverse_lazy("admin:whatsapp_tracking_whatsappcampaign_changelist"),
+                    },
+                    {
+                        "title": _("Tags (Etiquetas)"),
+                        "icon": "sell",
+                        "link": reverse_lazy("admin:whatsapp_tracking_contacttag_changelist"),
                     },
                 ],
             },

@@ -1,0 +1,82 @@
+<style>
+    /* WhatsApp Theme Styles injected by HTMX */
+    .wa-header { background-color: #008069; color: #ffffff; border-color: transparent; }
+    html.dark .wa-header, html[data-theme="dark"] .wa-header { background-color: #202c33; color: #e9edef; border-color: #313d45; }
+    
+    .wa-header-title { color: #ffffff; }
+    html.dark .wa-header-title, html[data-theme="dark"] .wa-header-title { color: #e9edef; }
+    
+    .wa-header-sub { color: rgba(255, 255, 255, 0.8); }
+    html.dark .wa-header-sub, html[data-theme="dark"] .wa-header-sub { color: #8696a0; }
+    
+    .wa-header-icon { color: #ffffff; }
+    html.dark .wa-header-icon, html[data-theme="dark"] .wa-header-icon { color: #aebac1; }
+    
+    .wa-container { background-color: #efeae2; }
+    html.dark .wa-container, html[data-theme="dark"] .wa-container { background-color: #0b141a; }
+    
+    .wa-bg-pattern { background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png'); background-repeat: repeat; opacity: 0.15; }
+    html.dark .wa-bg-pattern, html[data-theme="dark"] .wa-bg-pattern { opacity: 0.05; }
+    
+    .wa-message-in { background-color: #ffffff; color: #111b21; }
+    html.dark .wa-message-in, html[data-theme="dark"] .wa-message-in { background-color: #202c33; color: #e9edef; }
+    
+    .wa-message-out { background-color: #dcf8c6; color: #111b21; }
+    html.dark .wa-message-out, html[data-theme="dark"] .wa-message-out { background-color: #005c4b; color: #e9edef; }
+    
+    .wa-time { color: #667781; }
+    html.dark .wa-time, html[data-theme="dark"] .wa-time { color: #8696a0; }
+    
+    .wa-tick { color: #53bdeb; }
+</style>
+
+{% if not chat_messages %}
+    <div class="flex items-center justify-center h-full">
+        <div class="bg-white dark:bg-gray-800 rounded-lg p-4 shadow text-center">
+            <p class="text-gray-500 dark:text-gray-400">Nenhuma mensagem registrada com este contato ainda.</p>
+        </div>
+    </div>
+{% else %}
+    {% for msg in chat_messages %}
+        <div class="flex w-full {% if msg.from_me %}justify-end{% else %}justify-start{% endif %} mb-4">
+            <div class="max-w-[75%] rounded-lg p-3 shadow-sm relative transition-colors {% if msg.from_me %}rounded-tr-none wa-message-out{% else %}rounded-tl-none wa-message-in{% endif %}">
+                
+                <!-- Conteúdo da Mensagem -->
+                <div class="text-sm whitespace-pre-wrap break-words">
+                    {% if msg.message_type == 'imageMessage' or msg.message_type == 'image' %}
+                        <div class="flex items-center space-x-2 text-gray-500 dark:text-gray-400 italic mb-1">
+                            <span class="material-symbols-outlined" style="font-size: 16px;">image</span>
+                            <span>[Imagem]</span>
+                        </div>
+                    {% elif msg.message_type == 'audioMessage' or msg.message_type == 'audio' %}
+                        <div class="flex items-center space-x-2 text-gray-500 dark:text-gray-400 italic mb-1">
+                            <span class="material-symbols-outlined" style="font-size: 16px;">mic</span>
+                            <span>[Áudio]</span>
+                        </div>
+                    {% elif msg.message_type == 'videoMessage' or msg.message_type == 'video' %}
+                        <div class="flex items-center space-x-2 text-gray-500 dark:text-gray-400 italic mb-1">
+                            <span class="material-symbols-outlined" style="font-size: 16px;">videocam</span>
+                            <span>[Vídeo]</span>
+                        </div>
+                    {% endif %}
+                    
+                    {% if msg.content %}
+                        {{ msg.content }}
+                    {% elif msg.message_type != 'conversation' and msg.message_type != 'extendedTextMessage' %}
+                        <span class="italic text-gray-500 dark:text-gray-400">Mídia não suportada para exibição em texto.</span>
+                    {% endif %}
+                </div>
+
+                <!-- Rodapé do Balão (Hora) -->
+                <div class="flex justify-end mt-1 space-x-1 items-center">
+                    <span class="text-[10px] wa-time">
+                        {{ msg.timestamp|date:"H:i" }}
+                    </span>
+                    {% if msg.from_me %}
+                        <span class="material-symbols-outlined text-[14px] wa-tick">done_all</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    {% endfor %}
+{% endif %}

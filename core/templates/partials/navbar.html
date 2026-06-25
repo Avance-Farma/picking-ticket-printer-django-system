@@ -1,0 +1,88 @@
+<nav class="bg-slate-800 text-white flex items-center justify-between px-4 sm:px-6 h-[52px] sticky top-0 z-50 shadow-md">
+    <div class="text-base font-bold tracking-tight flex items-center gap-2">
+        <a href="/" class="flex items-center gap-2 text-white no-underline hover:text-slate-200">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <rect x="2" y="3" width="20" height="14" rx="2" />
+                <path d="M8 21h8M12 17v4" />
+            </svg>
+            <span class="hidden sm:inline">Avance WMS</span>
+        </a>
+    </div>
+    <div class="flex items-center gap-2 text-[13px] overflow-x-auto no-scrollbar">
+        {% if request.resolver_match.url_name == 'orders-list' %}
+        <div class="flex items-center gap-1.5 bg-white/10 border border-white/15 rounded-full px-3 py-1 font-medium hidden lg:flex">
+            <span class="w-2 h-2 rounded-full bg-green-400"></span>
+            <span id="count-confirmed">{{ total_confirmed|default:0 }}</span>&nbsp;confirmados
+        </div>
+        <div class="flex items-center gap-1.5 bg-white/10 border border-white/15 rounded-full px-3 py-1 font-medium hidden lg:flex">
+            <span class="w-2 h-2 rounded-full bg-yellow-400"></span>
+            <span id="count-pending">{{ total_pending|default:0 }}</span>&nbsp;pendentes
+        </div>
+        <div class="w-px h-5 bg-white/20 mx-1 hidden lg:block"></div>
+        {% endif %}
+        
+        <a href="{% url 'orders-list' %}"
+            class="flex items-center gap-1.5 {% if request.resolver_match.url_name == 'orders-list' %}bg-white/20{% else %}bg-white/10{% endif %} border border-white/15 rounded-full px-3 py-1 font-medium hover:bg-white/20 transition-colors no-underline text-white">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line>
+            </svg>
+            <span class="hidden sm:inline">Pickings</span>
+        </a>
+
+        <a href="{% url 'admin:whatsapp_tracking_whatsappcontact_changelist' %}"
+            class="flex items-center gap-1.5 {% if 'whatsapp_tracking/whatsappcontact' in request.path %}bg-white/20{% else %}bg-white/10{% endif %} border border-white/15 rounded-full px-3 py-1 font-medium hover:bg-white/20 transition-colors no-underline text-white">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+            </svg>
+            <span class="hidden sm:inline">WhatsApp</span>
+        </a>
+
+        <a href="{% url 'upload-import' %}"
+            class="flex items-center gap-1.5 {% if 'imports' in request.path %}bg-white/20{% else %}bg-white/10{% endif %} border border-white/15 rounded-full px-3 py-1 font-medium hover:bg-white/20 transition-colors no-underline text-white hidden md:flex">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="17 8 12 3 7 8" />
+                <line x1="12" y1="3" x2="12" y2="15" />
+            </svg>
+            Ingestão
+        </a>
+
+        <a href="/docs/" title="Documentação do Projeto"
+            class="flex items-center gap-1.5 bg-white/10 border border-white/15 rounded-full px-3 py-1 font-medium hover:bg-white/20 transition-colors no-underline text-white hidden lg:flex">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+            </svg>
+            Docs
+        </a>
+
+        <button onclick="openPrinterModal()" title="Configurar Impressora"
+            class="flex items-center gap-1.5 bg-white/10 border border-white/15 rounded-full px-3 py-1 font-medium hover:bg-white/20 transition-colors no-underline text-white hidden sm:flex">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <path d="M12 20v-5h4v5h5V9l-9-7-9 7v11h5z" />
+            </svg>
+            <span id="nav-printer-name" class="hidden md:inline">Definir Impressora</span>
+        </button>
+        
+        <a href="/admin/" title="Django Admin"
+            class="flex items-center gap-1.5 bg-white/10 border border-white/15 rounded-full px-3 py-1 font-medium hover:bg-amber-500/80 transition-colors no-underline text-white hidden md:flex">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+            </svg>
+            <span class="hidden lg:inline">Admin</span>
+        </a>
+        <div class="w-px h-5 bg-white/20 mx-1 hidden sm:block"></div>
+        <form action="{% url 'logout' %}" method="post" class="inline m-0 p-0">
+            {% csrf_token %}
+            <button type="submit" title="Sair do Sistema"
+                class="flex items-center gap-1.5 bg-red-500/80 border-red-500/30 rounded-full px-3 py-1 font-medium hover:bg-red-600 transition-colors text-white cursor-pointer h-full border-0">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                    <polyline points="16 17 21 12 16 7" />
+                    <line x1="21" y1="12" x2="9" y2="12" />
+                </svg>
+                <span class="hidden sm:inline">Sair</span>
+            </button>
+        </form>
+    </div>
+</nav>

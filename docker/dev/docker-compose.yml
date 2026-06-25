@@ -93,6 +93,8 @@ services:
       - DB_HOST=db
       - DB_PORT=5432
       - DJANGO_ENV=development
+      - EVOLUTION_API_URL=http://evolution-api:8080
+      - EVOLUTION_API_KEY=minha-chave-secreta-123
     depends_on:
       db:
         condition: service_healthy
@@ -171,7 +173,7 @@ services:
 
   # ─── Evolution API (WhatsApp Local Dev) ──────────────────────────────────
   evolution-api:
-    image: atendai/evolution-api:latest
+    image: atendai/evolution-api:v1.8.2
     ports:
       - "8081:8080"
     env_file:
@@ -181,12 +183,12 @@ services:
       - AUTHENTICATION_TYPE=apikey
       - AUTHENTICATION_API_KEY=minha-chave-secreta-123
       - AUTHENTICATION_EXPOSE_IN_FETCH_INSTANCES=true
-      - DATABASE_ENABLED=true
+      - DATABASE_ENABLED=false
       - DATABASE_PROVIDER=postgresql
       - DATABASE_CONNECTION_URI=postgresql://django_user:changeme@db:5432/avance_wms?schema=evolution
       - DATABASE_CONNECTION_CLIENT_NAME=evolution_dev
-      - REDIS_ENABLED=true
-      - REDIS_URI=redis://redis:6379/2
+      - CACHE_REDIS_ENABLED=false
+      - CACHE_LOCAL_ENABLED=true
       - WEBHOOK_GLOBAL_ENABLED=true
       # Aponta pro container 'web' na rede interna do docker-compose
       - WEBHOOK_GLOBAL_URL=http://web:8000/whatsapp/api/webhook/

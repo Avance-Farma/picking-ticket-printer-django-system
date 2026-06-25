@@ -7,6 +7,7 @@ from django.utils.translation import gettext_lazy as _
 from apps.customers.models import Customer
 from apps.orders.models import Order
 from apps.products.models import Product
+from apps.whatsapp_tracking.models import WhatsAppContact, WhatsAppMessage, WhatsAppInstance
 
 
 def dashboard_callback(request, context):
@@ -14,15 +15,23 @@ def dashboard_callback(request, context):
     Callback function to populate the Unfold admin dashboard with KPIs
     and advanced metrics.
     """
+    # E-commerce Metrics
     total_orders = Order.objects.count()
     pending_orders = Order.objects.filter(status="pending").count()
     total_products = Product.objects.count()
     total_customers = Customer.objects.count()
 
+    # WhatsApp / CRM Metrics
+    today = timezone.now().date()
+    total_leads = WhatsAppContact.objects.count()
+    leads_today = WhatsAppContact.objects.filter(created_at__date=today).count()
+    total_messages = WhatsAppMessage.objects.count()
+    messages_today = WhatsAppMessage.objects.filter(timestamp__date=today).count()
+
     context.update({
         "kpi": [
             {
-                "title": _("Total de Pedidos"),
+                "title": _("Pedidos Totais"),
                 "metric": total_orders,
                 "footer": _("Histórico completo"),
             },
@@ -32,14 +41,34 @@ def dashboard_callback(request, context):
                 "footer": _("Aguardando separação"),
             },
             {
+                "title": _("Leads WhatsApp"),
+                "metric": total_leads,
+                "footer": _("Total de contatos captados"),
+            },
+            {
+                "title": _("Leads Hoje"),
+                "metric": leads_today,
+                "footer": _("Novas conversas iniciadas"),
+            },
+            {
+                "title": _("Mensagens (CRM)"),
+                "metric": total_messages,
+                "footer": _("Total de interações"),
+            },
+            {
+                "title": _("Mensagens Hoje"),
+                "metric": messages_today,
+                "footer": _("Volume diário"),
+            },
+            {
                 "title": _("Produtos"),
                 "metric": total_products,
                 "footer": _("Itens no catálogo"),
             },
             {
-                "title": _("Clientes"),
+                "title": _("Clientes Base"),
                 "metric": total_customers,
-                "footer": _("Cadastros totais"),
+                "footer": _("Clientes sincronizados"),
             },
         ],
     })
@@ -51,7 +80,6 @@ def dashboard_callback(request, context):
     context["recent_orders"] = recent_orders
 
     # 2. Progress Data (Today's Picking)
-    today = timezone.now().date()
     today_orders = Order.objects.filter(created_at__date=today)
     total_today = today_orders.count()
     picked_today = today_orders.exclude(
@@ -69,13 +97,22 @@ def dashboard_callback(request, context):
     }
 
     # 3. Alerts
-    # Check if there are old pending orders (older than 2 days)
+    alerts = []
+    
+    # WhatsApp Alerts
+    offline_instances = WhatsAppInstance.objects.exclude(connection_status=WhatsAppInstance.ConnectionStatus.OPEN)
+    for inst in offline_instances:
+        alerts.append({
+            "type": "error",
+            "message": f"WhatsApp Desconectado: O vendedor '{inst.name}' está offline.",
+        })
+        
+    # E-commerce Alerts
     two_days_ago = timezone.now() - timedelta(days=2)
     delayed_orders_count = Order.objects.filter(
         status=Order.StatusChoices.PENDING, created_at__lt=two_days_ago
     ).count()
 
-    alerts = []
     if delayed_orders_count > 0:
         alerts.append({
             "type": "warning",
@@ -93,10 +130,11 @@ def dashboard_callback(request, context):
             ),
         })
     else:
-        alerts.append({
-            "type": "success",
-            "message": "Tudo em dia! A fila de picking está controlada.",
-        })
+        if not offline_instances:
+            alerts.append({
+                "type": "success",
+                "message": "Tudo operando perfeitamente. Fila de picking em dia e WhatsApp conectado.",
+            })
 
     context["alerts"] = alerts
 

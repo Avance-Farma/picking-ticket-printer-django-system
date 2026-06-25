@@ -1,70 +1,7 @@
 {% extends 'base.html' %}
 
 {% block header %}
-<nav class="bg-slate-800 text-white flex items-center justify-between px-6 h-[52px] sticky top-0 z-50 shadow-md">
-    <div class="text-base font-bold tracking-tight flex items-center gap-2">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-            <rect x="2" y="3" width="20" height="14" rx="2" />
-            <path d="M8 21h8M12 17v4" />
-        </svg>
-        Expedição de Pickings
-    </div>
-    <div class="flex items-center gap-2 text-[13px]">
-        <div class="flex items-center gap-1.5 bg-white/10 border border-white/15 rounded-full px-3 py-1 font-medium">
-            <span class="w-2 h-2 rounded-full bg-green-400"></span>
-            <span id="count-confirmed">{{ total_confirmed }}</span>&nbsp;confirmados
-        </div>
-        <div class="flex items-center gap-1.5 bg-white/10 border border-white/15 rounded-full px-3 py-1 font-medium">
-            <span class="w-2 h-2 rounded-full bg-yellow-400"></span>
-            <span id="count-pending">{{ total_pending }}</span>&nbsp;pendentes
-        </div>
-        <div class="w-px h-5 bg-white/20 mx-1"></div>
-        <a href="{% url 'upload-import' %}"
-            class="flex items-center gap-1.5 bg-white/10 border border-white/15 rounded-full px-3 py-1 font-medium hover:bg-white/20 transition-colors no-underline text-white">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                <polyline points="17 8 12 3 7 8" />
-                <line x1="12" y1="3" x2="12" y2="15" />
-            </svg>
-            Ingestão
-        </a>
-        <a href="/docs/" title="Documentação do Projeto"
-            class="flex items-center gap-1.5 bg-white/10 border border-white/15 rounded-full px-3 py-1 font-medium hover:bg-white/20 transition-colors no-underline text-white">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
-                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
-            </svg>
-            Docs
-        </a>
-        <button onclick="openPrinterModal()" title="Configurar Impressora"
-            class="flex items-center gap-1.5 bg-white/10 border border-white/15 rounded-full px-3 py-1 font-medium hover:bg-white/20 transition-colors no-underline text-white">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-                <path d="M12 20v-5h4v5h5V9l-9-7-9 7v11h5z" />
-            </svg>
-            <span id="nav-printer-name">Definir Impressora</span>
-        </button>
-        <a href="/admin/" title="Django Admin"
-            class="flex items-center gap-1.5 bg-white/10 border border-white/15 rounded-full px-3 py-1 font-medium hover:bg-amber-500/80 transition-colors no-underline text-white">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-            </svg>
-            Admin
-        </a>
-        <div class="w-px h-5 bg-white/20 mx-1"></div>
-        <form action="{% url 'logout' %}" method="post" class="inline m-0 p-0">
-            {% csrf_token %}
-            <button type="submit" title="Sair do Sistema"
-                class="flex items-center gap-1.5 bg-red-500/80 border-red-500/30 rounded-full px-3 py-1 font-medium hover:bg-red-600 transition-colors text-white cursor-pointer h-full border-0">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                    <polyline points="16 17 21 12 16 7" />
-                    <line x1="21" y1="12" x2="9" y2="12" />
-                </svg>
-                Sair
-            </button>
-        </form>
-    </div>
-</nav>
+{% include 'partials/navbar.html' %}
 {% endblock %}
 
 {% block content %}

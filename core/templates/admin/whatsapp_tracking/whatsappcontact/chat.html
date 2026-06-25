@@ -1,0 +1,100 @@
+{% extends "admin/base_site.html" %}
+{% load i18n unfold %}
+
+{% block breadcrumbs %}
+<div class="px-4 sm:px-6 lg:px-8 py-4">
+    <nav aria-label="Breadcrumb">
+        <ol role="list" class="flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400">
+            <li>
+                <a href="{% url 'admin:index' %}" class="hover:text-gray-700 dark:hover:text-gray-300">{% trans 'Home' %}</a>
+            </li>
+            <li>
+                <div class="flex items-center">
+                    <span class="material-symbols-outlined text-gray-400" style="font-size: 16px;">chevron_right</span>
+                    <a href="{% url 'admin:app_list' app_label='whatsapp_tracking' %}" class="ml-4 hover:text-gray-700 dark:hover:text-gray-300">WhatsApp Tracking</a>
+                </div>
+            </li>
+            <li>
+                <div class="flex items-center">
+                    <span class="material-symbols-outlined text-gray-400" style="font-size: 16px;">chevron_right</span>
+                    <a href="{% url 'admin:whatsapp_tracking_whatsappcontact_changelist' %}" class="ml-4 hover:text-gray-700 dark:hover:text-gray-300">Contatos (Leads)</a>
+                </div>
+            </li>
+            <li>
+                <div class="flex items-center">
+                    <span class="material-symbols-outlined text-gray-400" style="font-size: 16px;">chevron_right</span>
+                    <span class="ml-4 text-gray-700 dark:text-gray-200" aria-current="page">{{ contact.push_name|default:contact.phone_number }}</span>
+                </div>
+            </li>
+        </ol>
+    </nav>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="px-4 sm:px-6 lg:px-8 py-8 w-full max-w-5xl mx-auto">
+    <!-- Header do Chat -->
+    <div class="wa-header rounded-t-lg border-b p-4 flex items-center justify-between transition-colors">
+        <div class="flex items-center space-x-4">
+            <a href="{% url 'admin:whatsapp_tracking_whatsappcontact_changelist' %}" class="wa-header-icon hover:opacity-80 mr-2 flex items-center transition-opacity">
+                <span class="material-symbols-outlined" style="font-size: 24px;">arrow_back</span>
+            </a>
+            <div class="h-12 w-12 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center overflow-hidden">
+                {% if contact.profile_picture_url %}
+                    <img src="{{ contact.profile_picture_url }}" alt="Avatar" class="h-full w-full object-cover">
+                {% else %}
+                    <span class="material-symbols-outlined text-gray-500 dark:text-gray-300 text-3xl">person</span>
+                {% endif %}
+            </div>
+            <div>
+                <h2 class="text-lg font-bold wa-header-title">{{ contact.push_name|default:"Sem Nome" }}</h2>
+                <p class="text-sm wa-header-sub">{{ contact.phone_number }}</p>
+            </div>
+        </div>
+        <div>
+            <a href="https://wa.me/{{ contact.phone_number }}" target="_blank" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none transition-colors">
+                <span class="material-symbols-outlined mr-2" style="font-size: 18px;">chat</span>
+                Abrir WhatsApp
+            </a>
+        </div>
+    </div>
+
+    <!-- Área de Mensagens -->
+    <div class="wa-container rounded-b-lg border border-t-0 border-gray-200 dark:border-gray-700 relative overflow-hidden transition-colors" style="height: 400px;">
+        <!-- Background Wrapper -->
+        <div class="absolute inset-0 z-0 pointer-events-none wa-bg-pattern transition-opacity"></div>
+        
+        <!-- Scrollable Messages Container -->
+        <div 
+            id="chat-messages-container"
+            class="absolute inset-0 z-10 overflow-y-auto p-6"
+            hx-get="{% url 'admin:whatsappcontact_chat_messages' contact.pk %}" 
+            hx-trigger="every 3s" 
+            hx-swap="innerHTML"
+        >
+            {% include "admin/whatsapp_tracking/whatsappcontact/chat_messages.html" %}
+        </div>
+    </div>
+</div>
+
+<script>
+    function scrollToBottom() {
+        const chatContainer = document.getElementById('chat-messages-container');
+        if (chatContainer) {
+            // Only scroll if we are already near the bottom to avoid annoyance when reading older messages,
+            // or just always scroll on load. For simplicity, we always scroll.
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+    }
+
+    // Scroll automatically on initial load
+    document.addEventListener("DOMContentLoaded", scrollToBottom);
+
+    // Scroll automatically after HTMX updates the content
+    document.addEventListener("htmx:afterSettle", function(event) {
+        if (event.detail.target.id === "chat-messages-container") {
+            scrollToBottom();
+        }
+    });
+</script>
+{% endblock %}

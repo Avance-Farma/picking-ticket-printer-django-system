@@ -21,8 +21,11 @@ def health_check(request):
     return JsonResponse({"status": "ok"})
 
 
+from apps.whatsapp_tracking.views import HierarchyView
+
 urlpatterns = [
     path("health/", health_check, name="health-check"),
+    path("admin/whatsapp_tracking/hierarquia/", HierarchyView.as_view(), name="whatsapp_hierarchy"),
     path("admin/", admin.site.urls),
     # Auth
     path(API_PATH, include("apps.authentication.urls")),
