@@ -8,11 +8,13 @@ REQUEST:
   - orderId : integer (Número do pedido — convertido de string para int)
   - volume  : integer (Quantidade total de volumes)
 
-RESPONSE:
-  - originalOrderId : integer (ID do pedido confirmado)
-  - volume          : integer (Volume confirmado)
-  - success         : boolean (true se sucesso, false se erro)
-  - message         : string (Mensagem descritiva)
+RESPONSE (LISTA com um objeto):
+  [{
+    "originalOrderId" : integer (ID do pedido confirmado)
+    "volume"          : integer (Volume confirmado)
+    "success"         : boolean (true se sucesso, false se erro)
+    "message"         : string (Mensagem descritiva)
+  }]
 
 Headers:
   - Authorization : Bearer {token}
@@ -236,18 +238,47 @@ class ERPVolumePushService:
                 raise ERPValidationError(f"Resposta inválida do ERP (não é JSON): {response.text}") from exc
 
             # Validar estrutura da resposta — CONTRATO REAL
-            # A API ERP retorna um OBJETO único, não uma lista
-            if not isinstance(response_data, dict):
+            # A API ERP retorna uma LISTA com um objeto, não um objeto único
+            if not isinstance(response_data, list):
                 logger.error(
-                    "[%s] ERP Push: Resposta não é um dicionário: %s",
+                    "[%s] ERP Push: Resposta não é uma lista: %s",
                     request_id,
                     type(response_data).__name__,
                 )
                 raise ERPValidationError(
-                    f"Resposta inválida do ERP: esperado dict, recebido {type(response_data).__name__}"
+                    f"Resposta inválida do ERP: esperado list, recebido {type(response_data).__name__}"
                 )
 
-            item = response_data  # Resposta é um objeto único, não uma lista
+            if len(response_data) == 0:
+                logger.error(
+                    "[%s] ERP Push: Resposta é uma lista vazia",
+                    request_id,
+                )
+                raise ERPValidationError("Resposta inválida do ERP: lista vazia")
+
+            # Validar TODOS os itens (não apenas o primeiro)
+            for idx, item in enumerate(response_data):
+                if not isinstance(item, dict):
+                    logger.error(
+                        "[%s] ERP Push: Item %d não é um dicionário: %s",
+                        request_id,
+                        idx,
+                        type(item).__name__,
+                    )
+                    raise ERPValidationError(
+                        f"Resposta inválida do ERP: item {idx} não é dicionário"
+                    )
+
+            # Processar apenas o primeiro item (esperado)
+            # Mas alertar se houver múltiplos itens
+            if len(response_data) > 1:
+                logger.warning(
+                    "[%s] ERP Push: Resposta contém %d itens, processando apenas o primeiro",
+                    request_id,
+                    len(response_data),
+                )
+
+            item = response_data[0]
 
             # Validar campo "success" — OBRIGATÓRIO e BOOLEANO
             if "success" not in item:
