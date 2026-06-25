@@ -40,6 +40,16 @@ class VolumeService:
                 "Falha ao enfileirar push de volume para pedido %s: %s",
                 order.order_number,
                 exc,
+                exc_info=True,
+            )
+            order.erp_volume_sync_status = Order.ERPSyncStatus.ERROR
+            order.erp_volume_sync_error = f"Falha ao enfileirar: {str(exc)}"
+            order.save(
+                update_fields=[
+                    "erp_volume_sync_status",
+                    "erp_volume_sync_error",
+                    "updated_at",
+                ]
             )
             result["erp_warning"] = (
                 "Falha ao sincronizar com o ERP. A equipe será notificada."

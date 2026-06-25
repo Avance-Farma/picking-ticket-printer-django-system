@@ -362,6 +362,81 @@ class BulkProcessVolumesAPIView(APIView):
         })
 
 
+class RetryERPSyncAPIView(APIView):
+    """
+    POST /orders/api/v1/orders/<pk>/retry-erp-sync/
+
+    Reenfileira a task de sincronização de volume com o ERP para um pedido.
+    Apenas funciona para pedidos com status ERROR ou PENDING.
+    """
+
+    @extend_schema(
+        request=None,
+        responses={
+            200: inline_serializer(
+                name="RetryERPSyncResponse",
+                fields={
+                    "success": serializers.BooleanField(),
+                    "order_id": serializers.IntegerField(),
+                    "erp_volume_sync_status": serializers.CharField(),
+                    "message": serializers.CharField(),
+                },
+            )
+        },
+    )
+    def post(self, request, pk, *args, **kwargs):
+        try:
+            order = Order.objects.get(pk=pk)
+        except Order.DoesNotExist:
+            return Response(
+                {"error": "Pedido não encontrado."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        # Validar se pode fazer retry
+        if order.erp_volume_sync_status not in [
+            Order.ERPSyncStatus.ERROR,
+            Order.ERPSyncStatus.PENDING,
+        ]:
+            return Response(
+                {
+                    "error": f"Não é possível fazer retry. Status atual: {order.get_erp_volume_sync_status_display()}"
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if not order.total_volumes:
+            return Response(
+                {"error": "Pedido sem volumes confirmados."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            from apps.erp_sync.tasks import push_volume_to_erp_task
+
+            # Resetar status para PENDING antes de reenfileirar
+            order.erp_volume_sync_status = Order.ERPSyncStatus.PENDING
+            order.erp_volume_sync_error = ""
+            order.save(update_fields=["erp_volume_sync_status", "erp_volume_sync_error", "updated_at"])
+
+            # Reenfileirar task
+            push_volume_to_erp_task.delay(order.order_number, order.total_volumes)
+
+            return Response({
+                "success": True,
+                "order_id": order.pk,
+                "erp_volume_sync_status": order.erp_volume_sync_status,
+                "message": "Sincronização reenfileirada com sucesso.",
+            })
+
+        except Exception as exc:
+            logger.exception("Erro ao reenfileirar sincronização ERP para pedido %s", pk)
+            return Response(
+                {"error": f"Erro ao reenfileirar: {str(exc)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+
 class ConvertZPLToPDFAPIView(APIView):
     """
     POST /orders/api/v1/volumes/to-pdf/

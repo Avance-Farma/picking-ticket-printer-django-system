@@ -302,6 +302,14 @@ CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
 CELERY_TIMEZONE = TIME_ZONE
 
+# ─── Celery Retry / Backoff ──────────────────────────────────────────────────
+# Backoff exponencial para tasks que fazem retry (ex: push_volume_to_erp_task).
+# O delay entre tentativas dobra a cada retry até CELERY_TASK_RETRY_BACKOFF_MAX.
+# Jitter evita que múltiplas tasks falhem e retentam ao mesmo tempo.
+CELERY_TASK_RETRY_BACKOFF = True          # Habilita backoff exponencial
+CELERY_TASK_RETRY_BACKOFF_MAX = 600       # Máximo de 10 minutos entre tentativas
+CELERY_TASK_RETRY_JITTER = True           # Adiciona variação aleatória ao delay
+
 # ─── Celery Beat — Agendamento de tarefas periódicas ────────────────────────
 # Intervalo configurável via variável de ambiente (padrão: 10 minutos)
 _ERP_SYNC_INTERVAL_MINUTES = int(os.getenv("ERP_SYNC_INTERVAL_MINUTES", "10"))

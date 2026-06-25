@@ -11,7 +11,7 @@ from apps.orders.models import Order, OrderItem
 
 
 class OrderAdmin(ModelAdmin):
-    actions_list = ["export_orders_action"]
+    actions_list = ["export_orders_action", "retry_erp_sync_action"]
     actions_detail = ["print_ticket_action"]
 
     list_display = (
@@ -59,6 +59,28 @@ class OrderAdmin(ModelAdmin):
     )
     def display_erp_sync_status(self, obj):
         return obj.get_erp_volume_sync_status_display()
+
+    @action(description=_("Sincronizar com ERP"))
+    def retry_erp_sync_action(self, request, queryset):
+        from apps.erp_sync.tasks import push_volume_to_erp_task
+
+        count = 0
+        for order in queryset:
+            if order.total_volumes and order.erp_volume_sync_status in [
+                Order.ERPSyncStatus.ERROR,
+                Order.ERPSyncStatus.PENDING,
+            ]:
+                order.erp_volume_sync_status = Order.ERPSyncStatus.PENDING
+                order.erp_volume_sync_error = ""
+                order.save(update_fields=["erp_volume_sync_status", "erp_volume_sync_error"])
+                push_volume_to_erp_task.delay(order.order_number, order.total_volumes)
+                count += 1
+
+        self.message_user(
+            request,
+            f"{count} pedido(s) reenfileirado(s) para sincronização com ERP.",
+            messages.SUCCESS,
+        )
 
     @action(description=_("Exportar Todos os Pedidos em CSV"))
     def export_orders_action(self, request):
