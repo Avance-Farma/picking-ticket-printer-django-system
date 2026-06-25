@@ -2,9 +2,18 @@
 ERPVolumePushService — envia atualizações de volume para a API do ERP.
 
 Endpoint: PUT /api/Avance/UpdateOrderVolume
-Payload:
+Swagger: http://187.117.44.93:55050/index.html
+
+REQUEST:
   - orderId : integer (Número do pedido — convertido de string para int)
   - volume  : integer (Quantidade total de volumes)
+
+RESPONSE:
+  - originalOrderId : integer (ID do pedido confirmado)
+  - volume          : integer (Volume confirmado)
+  - success         : boolean (true se sucesso, false se erro)
+  - message         : string (Mensagem descritiva)
+
 Headers:
   - Authorization : Bearer {token}
   - accept        : */*
@@ -224,49 +233,21 @@ class ERPVolumePushService:
                     response.text[:200],
                     exc_info=True,
                 )
-                raise ERPSyncError(f"Resposta inválida do ERP (não é JSON): {response.text}") from exc
+                raise ERPValidationError(f"Resposta inválida do ERP (não é JSON): {response.text}") from exc
 
-            # Validar estrutura da resposta — RIGOROSO
-            if not isinstance(response_data, list):
+            # Validar estrutura da resposta — CONTRATO REAL
+            # A API ERP retorna um OBJETO único, não uma lista
+            if not isinstance(response_data, dict):
                 logger.error(
-                    "[%s] ERP Push: Resposta não é uma lista: %s",
+                    "[%s] ERP Push: Resposta não é um dicionário: %s",
                     request_id,
                     type(response_data).__name__,
                 )
                 raise ERPValidationError(
-                    f"Resposta inválida do ERP: esperado lista, recebido {type(response_data).__name__}"
+                    f"Resposta inválida do ERP: esperado dict, recebido {type(response_data).__name__}"
                 )
 
-            if len(response_data) == 0:
-                logger.error(
-                    "[%s] ERP Push: Resposta é uma lista vazia",
-                    request_id,
-                )
-                raise ERPValidationError("Resposta inválida do ERP: lista vazia")
-
-            # Validar TODOS os itens (não apenas o primeiro)
-            for idx, item in enumerate(response_data):
-                if not isinstance(item, dict):
-                    logger.error(
-                        "[%s] ERP Push: Item %d não é um dicionário: %s",
-                        request_id,
-                        idx,
-                        type(item).__name__,
-                    )
-                    raise ERPValidationError(
-                        f"Resposta inválida do ERP: item {idx} não é dicionário"
-                    )
-
-            # Processar apenas o primeiro item (esperado)
-            # Mas alertar se houver múltiplos itens
-            if len(response_data) > 1:
-                logger.warning(
-                    "[%s] ERP Push: Resposta contém %d itens, processando apenas o primeiro",
-                    request_id,
-                    len(response_data),
-                )
-
-            item = response_data[0]
+            item = response_data  # Resposta é um objeto único, não uma lista
 
             # Validar campo "success" — OBRIGATÓRIO e BOOLEANO
             if "success" not in item:
@@ -318,15 +299,7 @@ class ERPVolumePushService:
                 )
                 # Não é erro crítico, apenas aviso
 
-            # Validar dados retornados — CRÍTICO
-            # Verificar se ERP confirmou os dados enviados
-            if "orderId" not in item:
-                logger.error(
-                    "[%s] ERP Push: Campo 'orderId' ausente na resposta",
-                    request_id,
-                )
-                raise ERPValidationError("Campo 'orderId' obrigatório ausente na resposta do ERP")
-
+            # Validar campo "volume" — OBRIGATÓRIO e INTEIRO
             if "volume" not in item:
                 logger.error(
                     "[%s] ERP Push: Campo 'volume' ausente na resposta",
@@ -334,21 +307,9 @@ class ERPVolumePushService:
                 )
                 raise ERPValidationError("Campo 'volume' obrigatório ausente na resposta do ERP")
 
-            # Validar tipos dos dados retornados
-            response_order_id = item.get("orderId")
             response_volume = item.get("volume")
 
-            if not isinstance(response_order_id, int):
-                logger.error(
-                    "[%s] ERP Push: Campo 'orderId' retornado não é inteiro: %s (tipo: %s)",
-                    request_id,
-                    response_order_id,
-                    type(response_order_id).__name__,
-                )
-                raise ERPValidationError(
-                    f"Campo 'orderId' deve ser inteiro, recebido {type(response_order_id).__name__}"
-                )
-
+            # Validar tipo do volume retornado
             if not isinstance(response_volume, int):
                 logger.error(
                     "[%s] ERP Push: Campo 'volume' retornado não é inteiro: %s (tipo: %s)",
@@ -360,18 +321,7 @@ class ERPVolumePushService:
                     f"Campo 'volume' deve ser inteiro, recebido {type(response_volume).__name__}"
                 )
 
-            # Validar se ERP confirmou os dados CORRETOS
-            if response_order_id != order_id_int:
-                logger.error(
-                    "[%s] ERP Push: orderId retornado diferente - Esperado: %d, Recebido: %d",
-                    request_id,
-                    order_id_int,
-                    response_order_id,
-                )
-                raise ERPValidationError(
-                    f"orderId retornado diferente: esperado {order_id_int}, recebido {response_order_id}"
-                )
-
+            # Validar se ERP confirmou o volume CORRETO
             if response_volume != volume:
                 logger.error(
                     "[%s] ERP Push: volume retornado diferente - Esperado: %d, Recebido: %d",
@@ -383,10 +333,36 @@ class ERPVolumePushService:
                     f"volume retornado diferente: esperado {volume}, recebido {response_volume}"
                 )
 
+            # Validar campo "originalOrderId" — OPCIONAL (apenas log)
+            # A API ERP retorna "originalOrderId" em vez de "orderId"
+            if "originalOrderId" in item:
+                response_order_id = item.get("originalOrderId")
+
+                # Validar tipo
+                if not isinstance(response_order_id, int):
+                    logger.warning(
+                        "[%s] ERP Push: Campo 'originalOrderId' não é inteiro: %s (tipo: %s)",
+                        request_id,
+                        response_order_id,
+                        type(response_order_id).__name__,
+                    )
+                # Validar se corresponde ao enviado
+                elif response_order_id != order_id_int:
+                    logger.warning(
+                        "[%s] ERP Push: originalOrderId retornado diferente - Esperado: %d, Recebido: %d",
+                        request_id,
+                        order_id_int,
+                        response_order_id,
+                    )
+            else:
+                logger.warning(
+                    "[%s] ERP Push: Campo 'originalOrderId' ausente na resposta (esperado conforme Swagger)",
+                    request_id,
+                )
+
             logger.info(
-                "[%s] ERP Push: Dados confirmados pelo ERP - orderId=%d, volume=%d",
+                "[%s] ERP Push: Dados confirmados pelo ERP - volume=%d, success=true",
                 request_id,
-                response_order_id,
                 response_volume,
             )
 
