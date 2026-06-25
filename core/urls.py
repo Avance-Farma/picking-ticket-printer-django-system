@@ -22,7 +22,8 @@ def health_check(request):
 
 
 urlpatterns = [
-    path("orders/", include("apps.orders.urls")),
+    path("", include("apps.orders.urls")),  # Views HTML (raiz)
+    path("orders/", include("apps.orders.urls")),  # API com prefixo
     path("health/", health_check, name="health-check"),
     path("admin/", admin.site.urls),
     # Auth
