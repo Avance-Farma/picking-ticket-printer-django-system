@@ -1,4 +1,5 @@
 import csv
+import logging
 
 from django.contrib import admin, messages
 from django.http import HttpResponse
@@ -8,6 +9,8 @@ from unfold.admin import ModelAdmin
 from unfold.decorators import action, display
 
 from apps.orders.models import Order, OrderItem
+
+logger = logging.getLogger(__name__)
 
 
 class OrderAdmin(ModelAdmin):
@@ -100,16 +103,38 @@ class OrderAdmin(ModelAdmin):
             "Data Criação",
         ])
 
-        for order in Order.objects.all():
-            writer.writerow([
-                order.id,
-                order.picking,
-                order.order_number,
-                order.order_route,
-                order.customer.name if order.customer else "",
-                order.get_status_display(),
-                order.created_at.strftime("%d/%m/%Y %H:%M"),
-            ])
+        try:
+            orders = Order.objects.select_related("customer", "delivery").all()
+            for order in orders:
+                try:
+                    customer_name = (
+                        order.customer.name
+                        if order.customer_id and order.customer
+                        else ""
+                    )
+                    writer.writerow([
+                        order.id,
+                        order.picking,
+                        order.order_number,
+                        order.order_route,
+                        customer_name,
+                        order.get_status_display(),
+                        order.created_at.strftime("%d/%m/%Y %H:%M"),
+                    ])
+                except Exception as exc:
+                    logger.error(
+                        "export_orders_action: error exporting order %s: %s",
+                        getattr(order, "id", "?"),
+                        exc,
+                    )
+                    writer.writerow([
+                        getattr(order, "id", "?"),
+                        "", "", "", "", "", "",
+                    ])
+        except Exception as exc:
+            logger.error(
+                "export_orders_action: failed to query orders: %s", exc
+            )
 
         return response
 
@@ -121,9 +146,6 @@ class OrderAdmin(ModelAdmin):
         return redirect(
             request.META.get("HTTP_REFERER", "admin:orders_order_changelist")
         )
-
-
-admin.site.register(Order, OrderAdmin)
 
 
 class OrderItemAdmin(ModelAdmin):
@@ -150,4 +172,14 @@ class OrderItemAdmin(ModelAdmin):
     )
 
 
-admin.site.register(OrderItem, OrderItemAdmin)
+try:
+    admin.site.register(Order, OrderAdmin)
+    logger.info("OrderAdmin registered successfully.")
+except Exception as exc:
+    logger.error("Failed to register OrderAdmin: %s", exc)
+
+try:
+    admin.site.register(OrderItem, OrderItemAdmin)
+    logger.info("OrderItemAdmin registered successfully.")
+except Exception as exc:
+    logger.error("Failed to register OrderItemAdmin: %s", exc)

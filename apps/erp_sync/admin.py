@@ -1,10 +1,13 @@
+import logging
+
 from django.contrib import admin
 from unfold.admin import ModelAdmin
 
 from apps.erp_sync.models import ERPSyncLog
 
+logger = logging.getLogger(__name__)
 
-@admin.register(ERPSyncLog)
+
 class ERPSyncLogAdmin(ModelAdmin):
     list_display = (
         "sync_date",
@@ -39,3 +42,10 @@ class ERPSyncLogAdmin(ModelAdmin):
 
     def has_change_permission(self, request, obj=None):
         return False  # Logs são read-only
+
+
+try:
+    admin.site.register(ERPSyncLog, ERPSyncLogAdmin)
+    logger.info("ERPSyncLogAdmin registered successfully.")
+except Exception as exc:
+    logger.error("Failed to register ERPSyncLogAdmin: %s", exc)

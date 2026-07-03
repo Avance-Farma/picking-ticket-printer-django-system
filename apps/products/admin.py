@@ -1,4 +1,5 @@
 import csv
+import logging
 
 from django.contrib import admin
 from django.http import HttpResponse
@@ -7,6 +8,8 @@ from unfold.admin import ModelAdmin
 from unfold.decorators import action
 
 from apps.products import models
+
+logger = logging.getLogger(__name__)
 
 
 # Register your models here.
@@ -54,4 +57,8 @@ class ProductAdmin(ModelAdmin):
         return response
 
 
-admin.site.register(models.Product, ProductAdmin)
+try:
+    admin.site.register(models.Product, ProductAdmin)
+    logger.info("ProductAdmin registered successfully.")
+except Exception as exc:
+    logger.error("Failed to register ProductAdmin: %s", exc)

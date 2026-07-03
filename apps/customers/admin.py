@@ -1,7 +1,11 @@
+import logging
+
 from django.contrib import admin
 from unfold.admin import ModelAdmin
 
 from .models import Customer
+
+logger = logging.getLogger(__name__)
 
 
 # Register your models here.
@@ -28,4 +32,8 @@ class CustomerAdmin(ModelAdmin):
     readonly_fields = ("created_at", "updated_at")
 
 
-admin.site.register(Customer, CustomerAdmin)
+try:
+    admin.site.register(Customer, CustomerAdmin)
+    logger.info("CustomerAdmin registered successfully.")
+except Exception as exc:
+    logger.error("Failed to register CustomerAdmin: %s", exc)

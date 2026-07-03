@@ -1,7 +1,11 @@
+import logging
+
 from django.contrib import admin
 from unfold.admin import ModelAdmin
 
 from .models import Delivery
+
+logger = logging.getLogger(__name__)
 
 
 # Register your models here.
@@ -40,4 +44,8 @@ class DeliveryAdmin(ModelAdmin):
     readonly_fields = ("created_at", "updated_at")
 
 
-admin.site.register(Delivery, DeliveryAdmin)
+try:
+    admin.site.register(Delivery, DeliveryAdmin)
+    logger.info("DeliveryAdmin registered successfully.")
+except Exception as exc:
+    logger.error("Failed to register DeliveryAdmin: %s", exc)
