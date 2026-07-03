@@ -12,6 +12,10 @@ from drf_spectacular.views import (
     SpectacularSwaggerView,
 )
 
+from core.admin_site import SafeAdminSite
+
+admin_site = SafeAdminSite(name="admin")
+
 API_PATH = "api/v1/"
 
 
@@ -25,7 +29,7 @@ urlpatterns = [
     path("", include("apps.orders.urls")),  # Views HTML (raiz)
     path("orders/", include("apps.orders.urls")),  # API com prefixo
     path("health/", health_check, name="health-check"),
-    path("admin/", admin.site.urls),
+    path("admin/", admin_site.urls),
     # Auth
     path(API_PATH, include("apps.authentication.urls")),
     # API Pública (gateway)
