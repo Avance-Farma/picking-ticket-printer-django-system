@@ -1,6 +1,8 @@
 import json
+import logging
 from datetime import timedelta
 
+from django.db import DatabaseError
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
@@ -8,16 +10,34 @@ from apps.customers.models import Customer
 from apps.orders.models import Order
 from apps.products.models import Product
 
+logger = logging.getLogger(__name__)
+
 
 def dashboard_callback(request, context):
     """
     Callback function to populate the Unfold admin dashboard with KPIs
     and advanced metrics.
+
+    Each database query group is wrapped in its own try-except block so
+    that a transient database error degrades the dashboard gracefully
+    instead of raising a 500.  When an error occurs it is logged and an
+    alert is injected so admins know something is wrong.
     """
-    total_orders = Order.objects.count()
-    pending_orders = Order.objects.filter(status="pending").count()
-    total_products = Product.objects.count()
-    total_customers = Customer.objects.count()
+    db_error_occurred = False
+
+    # ── 1. KPI counts ────────────────────────────────────────────────────────
+    try:
+        total_orders = Order.objects.count()
+        pending_orders = Order.objects.filter(status="pending").count()
+        total_products = Product.objects.count()
+        total_customers = Customer.objects.count()
+    except DatabaseError as exc:
+        logger.error("dashboard_callback: failed to fetch KPI counts: %s", exc)
+        db_error_occurred = True
+        total_orders = 0
+        pending_orders = 0
+        total_products = 0
+        total_customers = 0
 
     context.update({
         "kpi": [
@@ -44,23 +64,38 @@ def dashboard_callback(request, context):
         ],
     })
 
-    # 1. Recent Orders (Last 5)
-    recent_orders = Order.objects.select_related("customer").order_by(
-        "-created_at"
-    )[:5]
-    context["recent_orders"] = recent_orders
+    # ── 2. Recent Orders (Last 5) ─────────────────────────────────────────────
+    try:
+        recent_orders = Order.objects.select_related("customer").order_by(
+            "-created_at"
+        )[:5]
+        # Force evaluation inside the try block so lazy QuerySet errors surface here
+        context["recent_orders"] = list(recent_orders)
+    except DatabaseError as exc:
+        logger.error("dashboard_callback: failed to fetch recent orders: %s", exc)
+        db_error_occurred = True
+        context["recent_orders"] = []
 
-    # 2. Progress Data (Today's Picking)
+    # ── 3. Progress Data (Today's Picking) ───────────────────────────────────
     today = timezone.now().date()
-    today_orders = Order.objects.filter(created_at__date=today)
-    total_today = today_orders.count()
-    picked_today = today_orders.exclude(
-        status=Order.StatusChoices.PENDING
-    ).count()
+    try:
+        today_orders = Order.objects.filter(created_at__date=today)
+        total_today = today_orders.count()
+        picked_today = today_orders.exclude(
+            status=Order.StatusChoices.PENDING
+        ).count()
 
-    progress_percentage = 0
-    if total_today > 0:
-        progress_percentage = int((picked_today / total_today) * 100)
+        progress_percentage = 0
+        if total_today > 0:
+            progress_percentage = int((picked_today / total_today) * 100)
+    except DatabaseError as exc:
+        logger.error(
+            "dashboard_callback: failed to fetch today's picking data: %s", exc
+        )
+        db_error_occurred = True
+        total_today = 0
+        picked_today = 0
+        progress_percentage = 0
 
     context["progress_data"] = {
         "total": total_today,
@@ -68,14 +103,22 @@ def dashboard_callback(request, context):
         "percentage": progress_percentage,
     }
 
-    # 3. Alerts
+    # ── 4. Alerts ─────────────────────────────────────────────────────────────
     # Check if there are old pending orders (older than 2 days)
-    two_days_ago = timezone.now() - timedelta(days=2)
-    delayed_orders_count = Order.objects.filter(
-        status=Order.StatusChoices.PENDING, created_at__lt=two_days_ago
-    ).count()
-
     alerts = []
+
+    try:
+        two_days_ago = timezone.now() - timedelta(days=2)
+        delayed_orders_count = Order.objects.filter(
+            status=Order.StatusChoices.PENDING, created_at__lt=two_days_ago
+        ).count()
+    except DatabaseError as exc:
+        logger.error(
+            "dashboard_callback: failed to fetch delayed orders count: %s", exc
+        )
+        db_error_occurred = True
+        delayed_orders_count = 0
+
     if delayed_orders_count > 0:
         alerts.append({
             "type": "warning",
@@ -98,16 +141,38 @@ def dashboard_callback(request, context):
             "message": "Tudo em dia! A fila de picking está controlada.",
         })
 
+    # Prepend a database error notice so it is the first thing admins see
+    if db_error_occurred:
+        alerts.insert(0, {
+            "type": "warning",
+            "message": (
+                "Atenção: Não foi possível conectar ao banco de dados. "
+                "Alguns dados do painel podem estar incompletos ou zerados. "
+                "Verifique a conexão com o PostgreSQL e consulte os logs para mais detalhes."
+            ),
+        })
+
     context["alerts"] = alerts
 
-    # 4. Chart Data (Orders per day, last 7 days)
-    chart_data = []
-    chart_labels = []
-    for i in range(6, -1, -1):
-        day = today - timedelta(days=i)
-        count = Order.objects.filter(created_at__date=day).count()
-        chart_labels.append(day.strftime("%d/%m"))
-        chart_data.append(count)
+    # ── 5. Chart Data (Orders per day, last 7 days) ───────────────────────────
+    try:
+        chart_data = []
+        chart_labels = []
+        for i in range(6, -1, -1):
+            day = today - timedelta(days=i)
+            count = Order.objects.filter(created_at__date=day).count()
+            chart_labels.append(day.strftime("%d/%m"))
+            chart_data.append(count)
+    except DatabaseError as exc:
+        logger.error(
+            "dashboard_callback: failed to fetch chart data: %s", exc
+        )
+        db_error_occurred = True
+        chart_data = [0] * 7
+        chart_labels = [
+            (today - timedelta(days=i)).strftime("%d/%m")
+            for i in range(6, -1, -1)
+        ]
 
     context["chart_data"] = json.dumps(chart_data)
     context["chart_labels"] = json.dumps(chart_labels)
