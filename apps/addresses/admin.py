@@ -1,7 +1,11 @@
+import logging
+
 from django.contrib import admin
 from unfold.admin import ModelAdmin
 
 from apps.addresses.models import Address
+
+logger = logging.getLogger(__name__)
 
 
 # Register your models here.
@@ -44,4 +48,8 @@ class AddressAdmin(ModelAdmin):
     )
 
 
-admin.site.register(Address, AddressAdmin)
+try:
+    admin.site.register(Address, AddressAdmin)
+    logger.info("AddressAdmin registered successfully.")
+except Exception as exc:
+    logger.error("Failed to register AddressAdmin: %s", exc)
