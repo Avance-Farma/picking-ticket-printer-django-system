@@ -364,22 +364,89 @@ SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = "Lax"
 
 
-# ─── Security Best Practices ─────────────────
+# ─── Logging ─────────────────────────────────────────────────────────────────
+# Always log to stdout so Railway captures errors even when DEBUG=False.
+# Without this, production 500 errors are silently swallowed.
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "verbose": {
+            "format": "{levelname} {asctime} {module} {process:d} {thread:d} {message}",
+            "style": "{",
+        },
+        "simple": {
+            "format": "{levelname} {asctime} {module} {message}",
+            "style": "{",
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "verbose",
+        },
+    },
+    "root": {
+        "handlers": ["console"],
+        "level": "WARNING",
+    },
+    "loggers": {
+        "django": {
+            "handlers": ["console"],
+            "level": env("DJANGO_LOG_LEVEL", default="WARNING"),
+            "propagate": False,
+        },
+        "django.request": {
+            "handlers": ["console"],
+            "level": "ERROR",
+            "propagate": False,
+        },
+        "django.security": {
+            "handlers": ["console"],
+            "level": "ERROR",
+            "propagate": False,
+        },
+        "core": {
+            "handlers": ["console"],
+            "level": "WARNING",
+            "propagate": False,
+        },
+        "apps": {
+            "handlers": ["console"],
+            "level": "WARNING",
+            "propagate": False,
+        },
+    },
+}
+
+# ─── Security Best Practices ─────────────────────────────────────────────────
 X_FRAME_OPTIONS = "DENY"
 
 # Railway (and most PaaS) terminate TLS at the proxy layer.
-# This header tells Django to trust the proxy's X-Forwarded-Proto header.
+# This header tells Django to trust the proxy's X-Forwarded-Proto header
+# so that request.is_secure() returns True for HTTPS requests, which is
+# required for SESSION_COOKIE_SECURE and CSRF_COOKIE_SECURE to work correctly.
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 if not DEBUG:
-    # Default False: Railway handles TLS at the edge, so Django should not redirect.
-    # Set SECURE_SSL_REDIRECT=True only if you handle TLS differently.
+    # Railway handles TLS at the edge — Django must NOT redirect to HTTPS itself,
+    # as it only sees plain HTTP internally. The proxy header above ensures
+    # request.is_secure() is True, which makes secure cookies work correctly.
     SECURE_SSL_REDIRECT = env.bool("SECURE_SSL_REDIRECT", default=False)
+
+    # Secure cookies: safe because SECURE_PROXY_SSL_HEADER makes Django treat
+    # Railway-proxied requests as HTTPS. Browsers will only send these cookies
+    # over HTTPS connections, which is enforced at the Railway edge.
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
+
+    # HSTS: tells browsers to always use HTTPS for this domain.
+    # Set SECURE_HSTS_SECONDS=0 via env var to disable during initial rollout.
     SECURE_HSTS_SECONDS = env.int("SECURE_HSTS_SECONDS", default=31536000)
-    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-    SECURE_HSTS_PRELOAD = True
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = env.bool(
+        "SECURE_HSTS_INCLUDE_SUBDOMAINS", default=True
+    )
+    SECURE_HSTS_PRELOAD = env.bool("SECURE_HSTS_PRELOAD", default=True)
 
 
 # ─── Unfold Theme Configuration ──────────────
